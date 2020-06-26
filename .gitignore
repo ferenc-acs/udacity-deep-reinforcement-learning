@@ -102,3 +102,6 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Banana project binaries
+Banana_Linux/
