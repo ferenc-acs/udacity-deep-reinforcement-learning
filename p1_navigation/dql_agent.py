@@ -30,7 +30,7 @@ class Agent():
         ======
             state_size (int): dimension of each state
             action_size (int): dimension of each action
-            seed (int): random seed
+            seed (int): a seed value for initialization, fixed if none given
         """
         self.state_size = state_size
         self.action_size = action_size
