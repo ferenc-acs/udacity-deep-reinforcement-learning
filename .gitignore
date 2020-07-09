@@ -105,3 +105,6 @@ ENV/
 
 # Banana project binaries
 Banana_Linux/
+
+# ghostwriter backup files
+*.md.backup
