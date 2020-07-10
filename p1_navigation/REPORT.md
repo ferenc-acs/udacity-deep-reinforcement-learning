@@ -2,9 +2,9 @@
 
 By:			Dr. Ferenc Acs from Filderstadt in Germany
 
-Date:		9th of July 2020
+Date:		10th of July 2020
 
-Version: 	0.01
+Version: 	0.02
 
 
 ## Problem description
@@ -12,8 +12,46 @@ The goal of this project was to create a self learning agent that can collect ye
 
 This should be implemented by using [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) for training an virtual agent in this environment that would lead to a well performing model of this agent.
 
-## Deep Q learning
-[Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) is an extension of the classical [Q learning](https://en.wikipedia.org/wiki/Q-learning) algorithm used in [reinforcement learning](https://en.wikipedia.org/wiki/Reinforcement_learning). The main advantage over classical Q learning is that the state space does not need to be represented in discrete states any more. More realistically the state space can be represented now by continuous values describing it. This raised a mathematical problem, for a long years it was impossible to use [function approximation](https://en.wikipedia.org/wiki/Function_approximation) to get a function that would approximate the ideal behavior of an agent to catch a lot of yellow bananas while avoiding the blue ones.  
+## Deep Q-learning
+[Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) is an extension of the classical [Q learning](https://en.wikipedia.org/wiki/Q-learning) algorithm used in [reinforcement learning](https://en.wikipedia.org/wiki/Reinforcement_learning). The main advantage over classical Q learning is that the state space does not need to be represented in discrete states any more. More realistically the state space can be represented now by continuous values describing it. This raised a mathematical problem, for a long years it was impossible to use [function approximation](https://en.wikipedia.org/wiki/Function_approximation) to get a function that would approximate the ideal behavior of an agent to catch a lot of yellow bananas while avoiding the blue ones. The problem is that one would need a function that takes the description of the current state, also called the state values, as an input and delivers the best action to take in this situation, aka configuration of state values, as an output.
+
+### The problem with Q-learning
+A solution to this approximation problem came along with [artificial neural networks](https://en.wikipedia.org/wiki/Artificial_neural_network) and the [backpropagation algorithm](https://en.wikipedia.org/wiki/Backpropagation). Before it was necessary to describe the states in discrete numerical values, which is quite challenging when you have an agent foraging along a large playing field for yellow bananas, while avoiding the blue ones of course. You would have to seperate the playing field in a chessboard like structure, called the [Q-Table](https://en.wikipedia.org/wiki/Q-learning#Algorithm) and determine for every field of this banana filled chessboard the optimal course of action when your agent performs its mad rush. Did I mention that  more yellow banas randomly fall on the playing field when your agent collects the old ones? Well, yes. Soon you would discover that the partitioning of the chessboard is not right, for example when you have one yellow and one blue banana in the same square. It is possible to construct quite sophisticated mathematical workarounds to minimize this problem, but you never will get rid of it completely.
+
+### How Q-learning became deep
+It would all be easier if we just can provide the *coordinates* of the agent and the speed and direction where it is moving to, all in floating point values. Wouldn't it? Well yes but then you would have lost the checkerboard partitioning of the playing field and deal with a potentially infinite checkerboard, which would make the problem not solvable, for even the biggest existing computers. Fortunately [artificial neural networks](https://en.wikipedia.org/wiki/Artificial_neural_network) came to the rescue! 
+
+It turns out that you can do exactly that with artificial neural networks. You describe the the situation, the state, utilizing floating point numbers and get the recommended action back. If the action was not the right one, e.g. catched a blue banana, you give this error as a feedback to the neural network and voilá you have [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning)!!
+
+Of course it is **not that simple** but the purpose of this report is just to give you a broad picture of this project.
+
+## The banana environment
+The banana environment is a simulation of a 3D playing field with a lot of yellow and blue bananas. It is a simplification of the [Food Collector environemnt](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#food-collector).
+
+	Number of actions: 4
+	States look like: [1.         0.         0.         0.         0.84408134 0.
+	 0.         1.         0.         0.0748472  0.         1.
+	 0.         0.         0.25755    1.         0.         0.
+	 0.         0.74177343 0.         1.         0.         0.
+	 0.25854847 0.         0.         1.         0.         0.09355672
+	 0.         1.         0.         0.         0.31969345 0.
+	 0.        ]
+	States have length: 37
+
+## The deep-Q network
+Well, actually my network is not *that* deep that it would deserve the title of a deep neural network, but I guess I have to go along with the *zeitgeist* and can not simply call it an artificial neural network architecture used as a function approximator for Q-learning.
+
+
+        Layer	1 		fc1 = nn.Linear(state_size, 128)
+        Dropout	1		dr1 = nn.Dropout(p=0.3)
+        Layer 	2		fc2 = nn.Linear(128, 64)
+        Dropout	2 		dr2 = nn.Dropout(p=0.1)
+        Layer	3		fc3 = nn.Linear(64, 32)
+        Layer	4		fc4 = nn.Linear(32, action_size)
+   
+I have constucted here a simple network with a just four layers, or expressed in different terminology, one *input layer*, two *hidden layers* and one *output layer*. Don't worry about the dropout layers, they are not really layers, they just make block the signal propagation for certain neurons. This is a technique called [Dilution or Dropout](https://en.wikipedia.org/wiki/Dilution_(neural_networks)) and should prevent a phenomenon called overfitting. In out banana environment you could imagine this as the agent developing certain *stubborn* behavior, for example *only turning right* while moving forward or standing still. Possible but uneconomical. To my surprise I later learned that dropout techniques are not used in deep reinforcement learning. Well, it worked well enough for this environment.
+
+
 
 
 ### Test results with epsilon = 0.01
