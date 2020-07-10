@@ -1,3 +1,20 @@
+# Report for Project One: Navigation for the Udacity Deep Reinforcement Learning Nanodegree.
+
+By:			Dr. Ferenc Acs from Filderstadt in Germany
+
+Date:		9th of July 2020
+
+Version: 	0.01
+
+
+## Problem description
+The goal of this project was to create a self learning agent that can collect yellow bananas in a 3D environment while avoiding blue bananas. This 3D environment was provided by [Udacity](https://www.udacity.com/) and is based on the [Machine learning framework](https://unity3d.com/machine-learning) provided by [Unity](https://unity.com/).
+
+This should be implemented by using [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) for training an virtual agent in this environment that would lead to a well performing model of this agent.
+
+## Deep Q learning
+[Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) is an extension of the classical [Q learning](https://en.wikipedia.org/wiki/Q-learning) algorithm used in [reinforcement learning](https://en.wikipedia.org/wiki/Reinforcement_learning). The main advantage over classical Q learning is that the state space does not need to be represented in discrete states any more. More realistically the state space can be represented now by continuous values describing it. This raised a mathematical problem, for a long years it was impossible to use [function approximation](https://en.wikipedia.org/wiki/Function_approximation) to get a function that would approximate the ideal behavior of an agent to catch a lot of yellow bananas while avoiding the blue ones.  
+
 
 ### Test results with epsilon = 0.01
 #### Results of model `20200707175101_qnetwork_local_statedict_slvd_15-65.pth`:
@@ -26,7 +43,7 @@
 	Epoch: 1000; Score:  17.0; Execution time: 0.5158 ; 14.36 (mea); 5.12 (std)
 	Achieved mean and standard deviation over 1000 test runs: 13.91 (mea) 5.55 (std) 
 
-#### Results of model `20200707113405_qnetwork_local_statedict_slvd_15.pth`
+#### Results of model `20200707113405_qnetwork_local_statedict_slvd_15.pth`:
 	Epoch:  100; Score:  13.0; Execution time: 0.5637 ; 17.38 (mea); 3.19 (std)
 	Epoc	h:  200; Score:  19.0; Execution time: 0.5059 ; 16.74 (mea); 3.39 (std)
 	Epoch:  300; Score:  20.0; Execution time: 0.4793 ; 16.58 (mea); 3.96 (std)
@@ -39,7 +56,7 @@
 	Epoch: 1000; Score:   8.0; Execution time: 0.4434 ; 17.03 (mea); 3.54 (std)
 	Achieved mean and standard deviation over 1000 test runs: 16.77 (mea) 3.62 (std) 
 
-#### Results of model `20200707090905_qnetwork_local_statedict_tst_20000.pth`
+#### Results of model `20200707090905_qnetwork_local_statedict_tst_20000.pth`:
 	Epoch:  100; Score:  17.0; Execution time: 0.5030 ; 16.06 (mea); 4.09 (std)
 	Epoch:  200; Score:  17.0; Execution time: 0.4851 ; 16.18 (mea); 3.58 (std)
 	Epoch:  300; Score:  21.0; Execution time: 0.5040 ; 15.15 (mea); 4.88 (std)
@@ -52,7 +69,7 @@
 	Epoch: 1000; Score:  14.0; Execution time: 0.5042 ; 15.97 (mea); 4.20 (std)
 	Achieved mean and standard deviation over 1000 test runs: 15.87 (mea) 4.34 (std)
 	
-#### Results of model `20200709154642_qnetwork_local_statedict_slvd_13.pth` 
+#### Results of model `20200709154642_qnetwork_local_statedict_slvd_13.pth`:
 	Epoch:  100; Score:  19.0; Execution time: 0.5170 ; 16.34 (mea); 3.79 (std)
 	Epoch:  200; Score:  15.0; Execution time: 0.4680 ; 15.48 (mea); 4.62 (std)
 	Epoch:  300; Score:  14.0; Execution time: 0.5006 ; 15.94 (mea); 3.83 (std)
@@ -106,7 +123,7 @@
 	Epoch: 1000; Score:  12.0; Execution time: 0.5190 ; 16.63 (mea); 4.42 (std)
 	Achieved mean and standard deviation over 1000 test runs: 16.45 (mea) 4.19 (std) 
 
-#### Results of model `20200707090905_qnetwork_local_statedict_tst_20000.pth`
+#### Results of model `20200707090905_qnetwork_local_statedict_tst_20000.pth`:
 	Epoch:  100; Score:  15.0; Execution time: 0.5072 ; 15.67 (mea); 4.68 (std)
 	Epoch:  200; Score:  19.0; Execution time: 0.5109 ; 15.80 (mea); 4.82 (std)
 	Epoch:  300; Score:  15.0; Execution time: 0.5103 ; 15.73 (mea); 5.02 (std)
@@ -119,7 +136,7 @@
 	Epoch: 1000; Score:  16.0; Execution time: 0.5130 ; 15.64 (mea); 4.96 (std)
 	Achieved mean and standard deviation over 1000 test runs: 15.72 (mea) 4.87 (std) 
 
-#### Results of model `20200709154642_qnetwork_local_statedict_slvd_13.pth` 
+#### Results of model `20200709154642_qnetwork_local_statedict_slvd_13.pth`: 
 	Epoch:  100; Score:  20.0; Execution time: 0.5305 ; 14.89 (mea); 4.91 (std)
 	Epoch:  200; Score:  14.0; Execution time: 0.5019 ; 15.63 (mea); 4.56 (std)
 	Epoch:  300; Score:  19.0; Execution time: 0.5201 ; 16.01 (mea); 4.28 (std)
