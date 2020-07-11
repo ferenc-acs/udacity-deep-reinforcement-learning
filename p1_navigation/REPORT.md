@@ -2,10 +2,11 @@
 
 By:			Dr. Ferenc Acs from Filderstadt in Germany
 
-Date:		10th of July 2020
+Date:		11th of July 2020
 
-Version: 	0.02
+Version: 	0.03
 
+![](pics/BananaGIF_20200707113405_slvd_15.gif)
 
 ## Problem description
 The goal of this project was to create a self learning agent that can collect yellow bananas in a 3D environment while avoiding blue bananas. This 3D environment was provided by [Udacity](https://www.udacity.com/) and is based on the [Machine learning framework](https://unity3d.com/machine-learning) provided by [Unity](https://unity.com/).
@@ -38,18 +39,20 @@ The banana environment is a simulation of a 3D playing field with a lot of yello
 	 0.        ]
 	States have length: 37
 
+Our agent can perform four actions, it can move forward, move backward, turn left and finally turn right. The state vector is a 37 dimensional representation of the environment the agent is currently in. 
+
 ## The deep-Q network
 Well, actually my network is not *that* deep that it would deserve the title of a deep neural network, but I guess I have to go along with the *zeitgeist* and can not simply call it an artificial neural network architecture used as a function approximator for Q-learning.
 
 
-        Layer	1 		fc1 = nn.Linear(state_size, 128)
+        Layer	1 		fc1 = nn.Linear(37, 128)
         Dropout	1		dr1 = nn.Dropout(p=0.3)
         Layer 	2		fc2 = nn.Linear(128, 64)
         Dropout	2 		dr2 = nn.Dropout(p=0.1)
         Layer	3		fc3 = nn.Linear(64, 32)
-        Layer	4		fc4 = nn.Linear(32, action_size)
+        Layer	4		fc4 = nn.Linear(32, 4)
    
-I have constucted here a simple network with a just four layers, or expressed in different terminology, one *input layer*, two *hidden layers* and one *output layer*. Don't worry about the dropout layers, they are not really layers, they just make block the signal propagation for certain neurons. This is a technique called [Dilution or Dropout](https://en.wikipedia.org/wiki/Dilution_(neural_networks)) and should prevent a phenomenon called overfitting. In out banana environment you could imagine this as the agent developing certain *stubborn* behavior, for example *only turning right* while moving forward or standing still. Possible but uneconomical. To my surprise I later learned that dropout techniques are not used in deep reinforcement learning. Well, it worked well enough for this environment.
+I have constructed here a simple network with a just four layers, the activation for all neurons in the network was calculated by a simple [ReLU activation function](https://pytorch.org/docs/stable/nn.html#torch.nn.ReLU). One *input layer* with 37 inputs, representing the state of the environment. Two *hidden layers* with a 30% probability of dropout for the first and a 10% probability of dropout for the second. Finally one *output layer* with the four possible actions as output. The terminology follows the convention of [how to construct a neural network with Pytorch](https://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html). Don't worry about the dropout layers, they are not really layers, they just block the signal propagation for certain neurons. This is a technique called [Dilution or Dropout](https://en.wikipedia.org/wiki/Dilution_(neural_networks)) and should prevent a phenomenon called overfitting. In our banana environment you could imagine this as preventing the agent developing certain *stubborn* behavior, for example *only turning right* while moving forward or standing still. Possible but uneconomical. To my surprise I later learned that dropout techniques are not used in deep reinforcement learning. Well, they worked well enough for this environment.
 
 
 
