@@ -1,6 +1,4 @@
-[//]: # (Image References)
 
-[image1]: https://user-images.githubusercontent.com/10624937/42135619-d90f2f28-7d12-11e8-8823-82b970a54d7e.gif "Trained Agent"
 
 # Project 1: Navigation
 
@@ -8,7 +6,7 @@
 
 For this project, you will train an agent to navigate (and collect bananas!) in a large, square world.  
 
-![Trained Agent][image1]
+![](pics/BananaGIF_20200707113405_slvd_15.gif)
 
 A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana.  Thus, the goal of your agent is to collect as many yellow bananas as possible while avoiding blue bananas.  
 
@@ -32,24 +30,54 @@ The task is episodic, and in order to solve the environment, your agent must get
 
     (_For AWS_) If you'd like to train the agent on AWS (and have not [enabled a virtual screen](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Training-on-Amazon-Web-Service.md)), then please use [this link](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/Banana_Linux_NoVis.zip) to obtain the environment.
 
-2. Place the file in the DRLND GitHub repository, in the `p1_navigation/` folder, and unzip (or decompress) the file. 
+2. Place the file in the `~/Python/rl/udadrl/data/` folder, and unzip (or decompress) the file **or** feel free to edit the following line in the Notebook directly:
+ `env = UnityEnvironment( os.path.join( os.environ['HOME'], 'Python/rl/udadrl/data/Banana_Linux/Banana.x86_64' ) )` 
 
 ### Instructions
 
-Follow the instructions in `Navigation.ipynb` to get started with training your own agent!  
+#### Create an environment
+I used mainly standalone machine with Ubuntu Linux 20.04 LTS as an operating system and Anaconda as a development environment.
 
-### (Optional) Challenge: Learning from Pixels
+I strongly suggest you create an environment with **one** of the three files in the root of this repository:
 
-After you have successfully completed the project, if you're looking for an additional challenge, you have come to the right place!  In the project, your agent learned from information such as its velocity, along with ray-based perception of objects around its forward direction.  A more challenging task would be to learn directly from pixels!
+* environment.yml (conda environment file)
+* environment_min.yml (minimal conda environment file)
+* requirements.txt (classical requirements file)
 
-To solve this harder task, you'll need to download a new Unity environment.  This environment is almost identical to the project environment, where the only difference is that the state is an 84 x 84 RGB image, corresponding to the agent's first-person view.  (**Note**: Udacity students should not submit a project with this new environment.)
+#### Use the notebook
+I refer here to the `Navigation.ipynb` Jupyter Notebook file
+##### Training
+Reset your kernel first.
 
-You need only select the environment that matches your operating system:
-- Linux: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Linux.zip)
-- Mac OSX: [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana.app.zip)
-- Windows (32-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Windows_x86.zip)
-- Windows (64-bit): [click here](https://s3-us-west-1.amazonaws.com/udacity-drlnd/P1/Banana/VisualBanana_Windows_x86_64.zip)
+If you wish you can adapt the requirement when the environment is considered as solved in section four: `CRIT_SOLVED = 13 #How many Bananas must be collected to succeed?`
 
-Then, place the file in the `p1_navigation/` folder in the DRLND GitHub repository, and unzip (or decompress) the file.  Next, open `Navigation_Pixels.ipynb` and follow the instructions to learn how to use the Python API to control the agent.
+Execute the code in sections
 
-(_For AWS_) If you'd like to train the agent on AWS, you must follow the instructions to [set up X Server](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Training-on-Amazon-Web-Service.md), and then download the environment for the **Linux** operating system above.
+* 1. Start the Environment
+* 2. Examine the State and Action Spaces
+* 4. It's My Turn! - Train the agent!
+
+The output file will be generated in the `./output` directory with a current time stamp as prefix of the `_qnetwork_local_statedict.pth` output file name.
+
+##### Testing
+Reset your kernel first.
+
+Enter the filename in section five by adapting the code line `FILENAME = '20200707113405_qnetwork_local_statedict_slvd_15.pth'`, assigning the proper filename to the variable `FILENAME`.
+
+If you want to test a trained agent fast and are just interested in the statistics over many testing runs you should set the train mode to `True` in section five:
+
+`env_info = env.reset(train_mode=False)[brain_name] # Reset & train_mode => False -> fast & True -> slow`
+
+and adapt the number of epochs accordingly in section five too:
+
+`for epc in range(3):`
+
+Execute the code in sections
+
+* 1. Start the Environment
+* 2. Examine the State and Action Spaces
+* 5. Watch the trained agent in action!
+
+
+
+

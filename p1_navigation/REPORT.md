@@ -4,25 +4,25 @@ By:			Dr. Ferenc Acs from Filderstadt in Germany
 
 Date:		12th of July 2020
 
-Version: 	0.05
+Version: 	1.0
 
 ![](pics/BananaGIF_20200707113405_slvd_15.gif)
 
 ## Problem description
 The goal of this project was to create a self learning agent that can collect yellow bananas in a 3D environment while avoiding blue bananas. This 3D environment was provided by [Udacity](https://www.udacity.com/) and is based on the [Machine learning framework](https://unity3d.com/machine-learning) provided by [Unity](https://unity.com/).
 
-This should be implemented by using [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) for training an virtual agent in this environment that would lead to a well performing model of this agent.
+This project should be implemented by using [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) for training an virtual agent in this environment that would lead to a well performing model of this agent.
 
 ## Deep Q-learning
-[Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) is an extension of the classical [Q learning](https://en.wikipedia.org/wiki/Q-learning) algorithm used in [reinforcement learning](https://en.wikipedia.org/wiki/Reinforcement_learning). The main advantage over classical Q learning is that the state space does not need to be represented in discrete states any more. More realistically the state space can be represented now by continuous values describing it. This raised a mathematical problem, for a long years it was impossible to use [function approximation](https://en.wikipedia.org/wiki/Function_approximation) to get a function that would approximate the ideal behavior of an agent to catch a lot of yellow bananas while avoiding the blue ones. The problem is that one would need a function that takes the description of the current state, also called the state values, as an input and delivers the best action to take in this situation, aka configuration of state values, as an output.
+[Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning) is an extension of the classical [Q learning](https://en.wikipedia.org/wiki/Q-learning) algorithm used in [reinforcement learning](https://en.wikipedia.org/wiki/Reinforcement_learning). The main advantage over classical Q learning is that the state space does not need to be represented in discrete states any more. More realistically the state space can be represented now by continuous values describing it. This raised a mathematical problem, for long years it was impossible to use [function approximation](https://en.wikipedia.org/wiki/Function_approximation) to get a function that would approximate the ideal behavior of an agent to catch a lot of yellow bananas while avoiding the blue ones. The problem is that one would need a function that takes the description of the current state, also called the state values, as an input and delivers the best action to take in this situation, aka predicted state values, as an output of these state action pairs.
 
 ### The problem with Q-learning
-A solution to this approximation problem came along with [artificial neural networks](https://en.wikipedia.org/wiki/Artificial_neural_network) and the [backpropagation algorithm](https://en.wikipedia.org/wiki/Backpropagation). Before it was necessary to describe the states in discrete numerical values, which is quite challenging when you have an agent foraging along a large playing field for yellow bananas, while avoiding the blue ones of course. You would have to seperate the playing field in a chessboard like structure, called the [Q-Table](https://en.wikipedia.org/wiki/Q-learning#Algorithm) and determine for every field of this banana filled chessboard the optimal course of action when your agent performs its mad rush. Did I mention that  more yellow banas randomly fall on the playing field when your agent collects the old ones? Well, yes. Soon you would discover that the partitioning of the chessboard is not right, for example when you have one yellow and one blue banana in the same square. It is possible to construct quite sophisticated mathematical workarounds to minimize this problem, but you never will get rid of it completely.
+A solution to this approximation problem came along with [artificial neural networks](https://en.wikipedia.org/wiki/Artificial_neural_network) and the [backpropagation algorithm](https://en.wikipedia.org/wiki/Backpropagation). Before it was necessary to describe the states in discrete numerical values, which is quite challenging when you have an agent foraging along a large playing field for yellow bananas while avoiding the blue ones of course. You would have to seperate the playing field in a chessboard like structure, resulting in a table called the [Q-Table](https://en.wikipedia.org/wiki/Q-learning#Algorithm) and determine for every field of this table the optimal course of action when your agent performs its mad rush. Did I mention that  more yellow bananas randomly fall on the playing field when your agent collects the old ones? Well, yes. Soon you would discover that the partitioning of the chessboard is not right, for example when you have one yellow and one blue banana in the same square the decision what to do is not easy. It is possible to construct quite sophisticated mathematical workarounds to minimize this problem, but you never will get rid of it completely.
 
 ### How Q-learning became deep
 It would all be easier if we just can provide the *coordinates* of the agent and the speed and direction where it is moving to, all in floating point values. Wouldn't it? Well yes but then you would have lost the checkerboard partitioning of the playing field and deal with a potentially infinite checkerboard, which would make the problem not solvable, for even the biggest existing computers. Fortunately [artificial neural networks](https://en.wikipedia.org/wiki/Artificial_neural_network) came to the rescue! 
 
-It turns out that you can do exactly that with artificial neural networks. You describe the the situation, the state, utilizing floating point numbers and get the recommended action back. If the action was not the right one, e.g. catched a blue banana, you give this error as a feedback to the neural network and voilá you have [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning)!!
+It turns out that you can do exactly that with artificial neural networks. You describe the the situation, the state, utilizing floating point numbers and get the recommended action back. If the action was not the right one, e.g. when catching a blue banana, you give this error as a feedback to the neural network and voilá you have [Deep Q learning](https://en.wikipedia.org/wiki/Q-learning#Deep_Q-learning)!!
 
 Of course it is **not that simple** but the purpose of this report is just to give you a broad picture of this project.
 
@@ -31,7 +31,7 @@ Deep Q-Learning is based on Q learning ([source](https://en.wikipedia.org/wiki/Q
 
 ![Q-learning algorithm](https://wikimedia.org/api/rest_v1/media/math/render/svg/678cb558a9d59c33ef4810c9618baf34a9577686)
 
-In essence we want to know the temporal difference between two states which are discrete in time. Furthermore we assume that the actions of our agent influence the states. Based on the action taken in the past (*old value*) and the action taken now (*new value - temporal differnce target*) we get the estimate of the resulting *temporal difference*, which also can be seen as the consequence (*reward*) of the chosen action (*estimate of optimal future value*). Thus we utilize the *temporal difference* to update the Q-Table in small steps (*learning rate*) towards a more optimal Q-Table. The *discount factor* should stay equal to or below one. If it stays below one it prioritizes recent outcomes over ones more in the past. 
+In essence we want to know the *temporal difference* between two states which are discrete in time. Furthermore we assume that the actions of our agent influence the states. Based on the action taken in the past (*old value*) and the action taken now (*new value - temporal differnce target*) we get the estimate of the resulting *temporal difference*, which also can be seen as the consequence (*reward*) of the chosen action (*estimate of optimal future value*). Thus we utilize the *temporal difference* to update the Q-Table in small steps (*learning rate*) towards a more optimal Q-Table. The *discount factor* should stay equal to or below one. If it stays below one it prioritizes recent outcomes over ones more in the past. 
 
 In essence the idea behind making Q-learning deep is to replace the Q-Table with an artificial neural network, thus providing a much more fine grained function approximator. This seemingly simple idea comes with a lot of caveats which basically result in unstable solutions. This is because simply adapting and applying the Q-learning algorithm for the use with artificial neural networks leads to wild fluctuations in the weight updates which essentially result in a unusable approach.
 
@@ -39,7 +39,7 @@ Two techniques are used to get this under control.
 
 **Experience replay** provides a pool of past outcomes of actions taken in certain states. This 'memory' serves the purpose of averaging out the fluctuations by making the weight updates based on a random chosen entry of this pool of past outcomes instead of the just most recently taken action and its immediate outcome. 
 
-**Fixed Q-Targets** The basic idea behind this is not to update the artificial neural network every time after some action was taken **and** the outcome was observed. Instead make a copy of the network and 'freeze' it in time. The updates are then performed on the copy instead. After a specified amount of time steps the copy is made the actual network and the process repeats. This fixes the targets over the specified amount of time steps, thus stabilizing the learning process. Otherwise we will risk wild fluctuations again.
+**Fixed Q-Targets** The basic idea behind this is not to update the artificial neural network every time after some action was taken and the outcome was observed. Instead make a copy of the network and 'freeze' it in time. The updates are then performed on the copy instead. After a specified amount of time steps the copy is made the actual network and the process repeats. This fixes the targets over the specified amount of time steps, thus stabilizing the learning process. Otherwise we will risk wild fluctuations again.
 
 An in deep discussion of these approaches can be found in two research papers that were recommended during the course:
 
@@ -89,7 +89,7 @@ Which leads to a nice drop over all training episodes  `num_episodes` with a min
 ![](pics/epsilon_decay.png)
 
 ## Results
-The framework of this network was taken from the [Lunar Lander Mini Project](https://github.com/ferenc-acs/udacity-deep-reinforcement-learning/tree/master/dqn) on the [Udacity GitHub Repo](https://github.com/udacity/deep-reinforcement-learning). During the course I created the network you see above for the Lunar Lander environment, so the hyperparameters and the network architecture were transfered. The configuration worked surprisingly well from the beginning:
+The framework of this network was taken from the [Lunar Lander Mini Project](https://github.com/ferenc-acs/udacity-deep-reinforcement-learning/tree/master/dqn) on the [Udacity GitHub Repo](https://github.com/udacity/deep-reinforcement-learning). During the course I created the network you see above for the Lunar Lander environment, so the hyperparameters and the network architecture were transferred. The configuration worked surprisingly well from the beginning:
 
 ![](pics/1st_training_run.png)
 
@@ -112,11 +112,11 @@ The maximum score achived was 25 with a maximum rolling 100 mean of 16,5. A roll
 
 To my surprise it turned out that the model `20200707113405_qnetwork_local_statedict_slvd_15.pth` was the best performing, hence it only had a threshold of 15 to abort training.
 
-It took 410 episodes to solve the environment to reach the criterion score of 13 set by Udacity:
+It took 410 episodes for this model to solve the environment by reaching the criterion set by Udacity of a rolling mean of at least 13 over the last 100 episodes:
 
 ![](pics/410_scores.png)
 
-The resulting model reached a mean performance of 15.95 over 1000 testing runs.
+
 
 ## Conclusions
 It was kind of surprising that the lunar lander architecture worked so well. I was also surprised by the fact that simple Deep Q-Learning along with a very minimalistic neural network architecture were sufficient to solve this environment.
