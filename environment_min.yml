@@ -1,0 +1,12 @@
+name: drlnd
+channels:
+  - defaults
+dependencies:
+  - python=3.6
+  - notebook
+  - jupyterlab
+  - pytorch=0.4.0
+  - pip
+  - swig
+prefix: /home/ferenc/anaconda3/envs/drlnd
+
