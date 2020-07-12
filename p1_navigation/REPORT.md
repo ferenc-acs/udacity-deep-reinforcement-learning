@@ -2,9 +2,9 @@
 
 By:			Dr. Ferenc Acs from Filderstadt in Germany
 
-Date:		11th of July 2020
+Date:		12th of July 2020
 
-Version: 	0.04
+Version: 	0.05
 
 ![](pics/BananaGIF_20200707113405_slvd_15.gif)
 
@@ -26,6 +26,28 @@ It turns out that you can do exactly that with artificial neural networks. You d
 
 Of course it is **not that simple** but the purpose of this report is just to give you a broad picture of this project.
 
+### The algorithm
+Deep Q-Learning is based on Q learning ([source](https://en.wikipedia.org/wiki/Q-learning#Algorithm)):
+
+![Q-learning algorithm](https://wikimedia.org/api/rest_v1/media/math/render/svg/678cb558a9d59c33ef4810c9618baf34a9577686)
+
+In essence we want to know the temporal difference between two states which are discrete in time. Furthermore we assume that the actions of our agent influence the states. Based on the action taken in the past (*old value*) and the action taken now (*new value - temporal differnce target*) we get the estimate of the resulting *temporal difference*, which also can be seen as the consequence (*reward*) of the chosen action (*estimate of optimal future value*). Thus we utilize the *temporal difference* to update the Q-Table in small steps (*learning rate*) towards a more optimal Q-Table. The *discount factor* should stay equal to or below one. If it stays below one it prioritizes recent outcomes over ones more in the past. 
+
+In essence the idea behind making Q-learning deep is to replace the Q-Table with an artificial neural network, thus providing a much more fine grained function approximator. This seemingly simple idea comes with a lot of caveats which basically result in unstable solutions. This is because simply adapting and applying the Q-learning algorithm for the use with artificial neural networks leads to wild fluctuations in the weight updates which essentially result in a unusable approach.
+
+Two techniques are used to get this under control.
+
+**Experience replay** provides a pool of past outcomes of actions taken in certain states. This 'memory' serves the purpose of averaging out the fluctuations by making the weight updates based on a random chosen entry of this pool of past outcomes instead of the just most recently taken action and its immediate outcome. 
+
+**Fixed Q-Targets** The basic idea behind this is not to update the artificial neural network every time after some action was taken **and** the outcome was observed. Instead make a copy of the network and 'freeze' it in time. The updates are then performed on the copy instead. After a specified amount of time steps the copy is made the actual network and the process repeats. This fixes the targets over the specified amount of time steps, thus stabilizing the learning process. Otherwise we will risk wild fluctuations again.
+
+An in deep discussion of these approaches can be found in two research papers that were recommended during the course:
+
+* Riedmiller, M. (2005, October). [Neural fitted Q iteration–first experiences with a data efficient neural reinforcement learning method.](http://ml.informatik.uni-freiburg.de/former/_media/publications/rieecml05.pdf) In European Conference on Machine Learning (pp. 317-328). Springer, Berlin, Heidelberg.
+
+* Mnih, V., Kavukcuoglu, K., Silver, D., Rusu, A. A., Veness, J., Bellemare, M. G., ... & Petersen, S. (2015). [Human-level control through deep reinforcement learning.](http://files.davidqiu.com//research/nature14236.pdf) nature, 518(7540), 529-533.
+
+
 ## The banana environment
 The banana environment is a simulation of a 3D playing field with a lot of yellow and blue bananas. It is a simplification of the [Food Collector environemnt](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#food-collector).
 
@@ -40,6 +62,9 @@ The banana environment is a simulation of a 3D playing field with a lot of yello
 	States have length: 37
 
 Our agent can perform four actions, it can move forward, move backward, turn left and finally turn right. The state vector is a 37 dimensional representation of the environment the agent is currently in. 
+
+For a detailed description of the banana environment see the excellent report of [Wilbert Pumacay](https://twitter.com/WilbertPumacay): [Using DQN to solve the Banana environment from ML-Agents](https://wpumacay.github.io/research_blog/posts/deeprlnd-project1-navigation/)
+
 
 ## The deep-Q network
 Well, actually my network is not *that* deep that it would deserve the title of a deep neural network, but I guess I have to go along with the *zeitgeist* and can not simply call it an artificial neural network architecture used as a function approximator for Q-learning.
