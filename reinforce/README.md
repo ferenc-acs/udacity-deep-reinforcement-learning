@@ -4,6 +4,9 @@
 
 # REINFORCE
 
+### Trajectory Sampling (Ferenc 2020-07-21)
+The base implementation was without sampling different trajectories. This is implemented now.
+
 ### Instructions
 
 Open `REINFORCE.ipynb` to see an implementation of REINFORCE (also known as Monte Carlo Policy Gradients) with OpenAI Gym's Cartpole environment.
