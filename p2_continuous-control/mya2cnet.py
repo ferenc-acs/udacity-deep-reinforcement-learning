@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Thx2: https://emacs.stackexchange.com/a/13483
+import imp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+imp.reload(torch) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+
 # Format: IN_Num [Layer 1] (OUT_Num = IN_Num) [Layer 2] OUT_Num = ...
 HIDDEN_DIMS_DEFAULT = {
     'shared' : (512, 512, 256, 256), #Three hidden layers
@@ -19,6 +24,7 @@ class A2CNetwork(nn.Module):
         self.hlayers['shared'] = nn.ModuleList()
         self.hlayers['actor'] = nn.ModuleList()
         self.hlayers['critic'] = nn.ModuleList()
+        self.hlayer = nn.Linear(1,1) #Temporary layer for iterations
         
         # Input layer
         self.input_layer = nn.Linear( input_dim, hidden_dims['shared'][0] )
@@ -56,11 +62,14 @@ class A2CNetwork(nn.Module):
         check_tensor = lambda x: isinstance(x, torch.Tensor)
         #last_x_shared_actor = True
         #last_x_shared_critic = True
+        x_act = True 
+        x_crit = True
+
         
         x = self._format(state)
         x = F.relu( self.input_layer(x) )
         for label in ['shared', 'actor', 'critic']:
-            for hlayer in self.hlayers[label]:
+            for self.hlayer in self.hlayers[label]:
                 if label == 'shared':
                     x = F.relu( self.hlayer(x) )
                 if label == 'actor':
