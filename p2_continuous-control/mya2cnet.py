@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import numpy as np
+
 # Format: IN_Num [Layer 1] (OUT_Num = IN_Num) [Layer 2] OUT_Num = ...
 HIDDEN_DIMS_DEFAULT = {
     'shared' : (512, 512, 256, 256), #Three hidden layers
@@ -9,7 +11,8 @@ HIDDEN_DIMS_DEFAULT = {
     'critic' : (256, 128, 128, 64) #Three hidden layers
 }
 
-# thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
+# Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
+# Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
 class A2CNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dims = HIDDEN_DIMS_DEFAULT):
         
@@ -79,6 +82,25 @@ class A2CNetwork(nn.Module):
 
        
         return self.actor_out_layer(x_act), self.critic_out_layer(x_crit) 
+    
+    def fullpass(self, state):
+        logits, value = self.forward(state)
+        #dist = torch.distributions.Categorial( logits = logits )
+        dist = torch.distributions.categorical.Categorical( logits = logits ) #PyTorch 0.4.0
+        action = dist.sample()
+        logprob = dist.log_prob(action).unsqueeze(-1)
+        entropy = dist.entropy().unsqueeze(-1)
+        action = action.item() if len(action) == 1 else action.data.numpy()
+        is_exploratory = action != np.argmax( logits.detach().numpy(), axis = int( len(state) != -1) )
+        return action, is_exploratory, logprob, entropy, value
+    
+    def select_action(self, state):
+        logits, _ = self.forward(state)
+        dist = torch.distributions.Categorical(logits = logits)
+        action = dist.sample()
+        action = action.item() if len(action) == 1 else action.data.numpy()
+        return action
+    
 
                
                 
