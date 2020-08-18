@@ -14,11 +14,13 @@ HIDDEN_DIMS_DEFAULT = {
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
 # Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
 class A2CNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dims = HIDDEN_DIMS_DEFAULT):
+    def __init__(self, input_dim, output_dim, max_grad_norm, hidden_dims = HIDDEN_DIMS_DEFAULT):
         
         torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         super(A2CNetwork, self).__init__()
+        
+        self.max_grad_norm = max_grad_norm
         
         self.hlayers = dict()
         
@@ -100,6 +102,10 @@ class A2CNetwork(nn.Module):
         action = dist.sample()
         action = action.item() if len(action) == 1 else action.data.numpy()
         return action
+    
+    def evaluate_state(self, state):
+        _, value = self.forward(state)
+        return value
     
 
                
