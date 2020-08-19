@@ -86,14 +86,19 @@ class A2CNetwork(nn.Module):
         return self.actor_out_layer(x_act), self.critic_out_layer(x_crit) 
     
     def fullpass(self, state):
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         logits, value = self.forward(state)
         #dist = torch.distributions.Categorial( logits = logits )
-        dist = torch.distributions.categorical.Categorical( logits = logits ) #PyTorch 0.4.0
-        action = dist.sample()
-        logprob = dist.log_prob(action).unsqueeze(-1)
-        entropy = dist.entropy().unsqueeze(-1)
-        action = action.item() if len(action) == 1 else action.data.numpy()
-        is_exploratory = action != np.argmax( logits.detach().numpy(), axis = int( len(state) != -1) )
+        #dist = torch.distributions.categorical.Categorical( logits = logits ) #PyTorch 0.4.0
+        #action = dist.sample()
+        #logprob = dist.log_prob(action).unsqueeze(-1)
+        logprob = 0.1 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #entropy = dist.entropy().unsqueeze(-1)
+        entropy = 0.1 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #action = action.item() if len(action) == 1 else action.data.numpy()
+        action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        #is_exploratory = action != np.argmax( logits.detach().numpy(), axis = int( len(state) != -1) )
+        is_exploratory = False # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         return action, is_exploratory, logprob, entropy, value
     
     def select_action(self, state):

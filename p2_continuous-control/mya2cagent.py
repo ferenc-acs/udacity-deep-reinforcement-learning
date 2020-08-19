@@ -16,58 +16,112 @@ class a2cagent():
         self.brain = brain
         self.max_steps = max_steps
         
-        def train(states):
-            self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, self.brain.vector_action_space_size)
-            self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
-            
-            #states = self.env.reset()
-            states = self.env.vector_observations
-            
-            for step in count(start=1):
-                states, is_terminals = self.interaction_step(self.env.vector_observations)
-                
-                if ( is_terminals.sum() > 0 ) or ( step - n_start >= self.max_steps ):
-                    next_values = self.a2c_net.evaluate_state(state).detach().numpy() * ( 1 - ( is_terminals.sum() > 0 ) )
-                    
-                    self.rewards.append(next_values)
-                    self.values.append( torch.Tensor(next_values) )
-                    self.optimize_model()
-                    
-                    self.logpas = list()
-                    self.entropies = list()
-                    self.rewards = list()
-                    self.values = list()
-                    
-                    n_start = step
+        self.logpas = list()
+        self.entropies = list()
         
-        def optimize_model(self):
-            T = len(self.rewards)
-            discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False)
-            returns = np.array( [[np.sum(discounts[:T-t] * rewards[t:, w]) for t in range(T)] for w in range(self.n_workers) ] )
+        self.rewards = list()
+        self.values = list()
+        
+        self.running_reward = 0.0
+        self.running_timestep = 0
+        self.running_exploration = 0.0
+        
+    def train(self, states):
+        self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, self.brain.vector_action_space_size)
+        self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
+
+        #states = self.env.reset()
+        #states = self.env.vector_observations
+        
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! 
+
+        #for step in count(start=1):
+        for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            statesXX, is_terminals = self.interaction_step(states, self.env)
             
-            np.values = values.data.numpy()
-            tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
-            advs = rewards[:-1] + self.gamma * mp_values[1:] - np_values[:-1]
-            
-            gaes = np.array(
-                [[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.n_workers)])
-            
-            discount_gaes = discounts[:-1] * gaes
-            
-            #np_values = values.data.numpy()
-            value_error = returns - values
-            value_loss = value_error.pow(2).mul(0.5).mean()
-            policy_loss = -(discount_gaes.detach() * logpas).mean()
-            entropy_loss = -entropies.mean()
-            
-            loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
-            
-            self.a2c_opt.zero_grad()
-            loss.backward()
-            
-            torch.nn.utils.clip_grad_norm_( self.a2c_net.parameters(), self.a2c_net.max_grad_norm )
-            
-            self.a2c_opt.step()
+            #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+
+            #if ( is_terminals.sum() > 0 ) or ( step - n_start >= self.max_steps ):
+            if ( np.sum(is_terminals) > 0 ): # or ( step - n_start >= self.max_steps ):
+                next_values = self.a2c_net.evaluate_state(state).detach().numpy() * ( 1 - ( is_terminals.sum() > 0 ) )
+
+                self.rewards.append(next_values)
+                self.values.append( torch.Tensor(next_values) )
+                self.optimize_model()
+
+                #self.logpas = list()
+                #self.entropies = list()
+                self.rewards = list()
+                self.values = list()
+
+                n_start = step
+        
+    def optimize_model(self):
+        T = len(self.rewards)
+        discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False)
+        returns = np.array( [[np.sum(discounts[:T-t] * rewards[t:, w]) for t in range(T)] for w in range(self.n_workers) ] )
+
+        np.values = values.data.numpy()
+        tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
+        advs = rewards[:-1] + self.gamma * mp_values[1:] - np_values[:-1]
+
+        gaes = np.array(
+            [[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.n_workers)])
+
+        discount_gaes = discounts[:-1] * gaes
+
+        #np_values = values.data.numpy()
+        value_error = returns - values
+        value_loss = value_error.pow(2).mul(0.5).mean()
+        policy_loss = -(discount_gaes.detach() * logpas).mean()
+        entropy_loss = -entropies.mean()
+
+        loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
+
+        self.a2c_opt.zero_grad()
+        loss.backward()
+
+        torch.nn.utils.clip_grad_norm_( self.a2c_net.parameters(), self.a2c_net.max_grad_norm )
+
+        self.a2c_opt.step()
+        
+    def interaction_step(self, states, env):
+        actions = list()
+        is_exploratories = list()
+        
+        for state in states:
+            action, is_exploratory, logpas, entropies, values = self.a2c_net.fullpass(state)
+            actions.append(action)
+            is_exploratories.append(is_exploratory)
+
+            #Thx2: https://stackoverflow.com/a/6383390/12171415
+            #try:
+            self.logpas.append(logpas)
+            #except AttributeError:
+            #    self.logpas = torch.stack( torch.Tensor(logpas) )
+                
+            #try:
+            self.entropies.append(entropies)
+            #except AttributeError:
+            #    self.entropies = torch.stack( torch.Tensor(entropies) )
+        
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #new_states = env.step( [x.cpu().detach().numpy() for x in actions] ) = env.step( [x.cpu().detach().numpy() for x in actions] )
+        brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
+        new_states = brain_inf.vector_observations
+        rewards = brain_inf.rewards
+        is_terminals = brain_inf.local_done
+
+        
+        self.rewards.append(rewards)
+        self.values.append(values)
+        
+        self.running_reward += np.mean(rewards)
+        self.running_timestep += 1
+        #self.running_exploration += is_exploratory[:,np.newaxis].astype(np.int)
+        self.running_exploration = False # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+
+        return new_states, is_terminals
             
             
                     
@@ -95,15 +149,14 @@ class MultiProcEnv(object):
         self.pipes = [mp.Pipe() for rank in range(self.numworkers)]
         
         myargs = [(rank, self.pipes[rank][1]) for rank in range(self.numworkers)]
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         self.workers = [mp.Process( target = self.work, args=myargs )]
         
         [w.start() for w in self.workers]
         
     #def work(self, rank, worker_end):
     def work(*args):    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        for a in args:  # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-            print(a)    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #for a in args:  # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #    print(a)    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
     
         #env.self.make_env_fn( **self.make_env_kargs, seed = self.seed + rank)
         #while True:
