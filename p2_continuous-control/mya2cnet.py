@@ -14,7 +14,7 @@ HIDDEN_DIMS_DEFAULT = {
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
 # Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
 class A2CNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim, max_grad_norm, hidden_dims = HIDDEN_DIMS_DEFAULT):
+    def __init__(self, input_dim, output_dim, max_grad_norm = 1, hidden_dims = HIDDEN_DIMS_DEFAULT):
         
         torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
@@ -98,9 +98,11 @@ class A2CNetwork(nn.Module):
     
     def select_action(self, state):
         logits, _ = self.forward(state)
-        dist = torch.distributions.Categorical(logits = logits)
-        action = dist.sample()
-        action = action.item() if len(action) == 1 else action.data.numpy()
+        #dist = torch.distributions.Categorical(logits = logits)
+        #action = dist.sample()
+        action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        #action = (action * 2) - 1 #FA: Give the normalized values a range between -1 and 1
+        #action = action.item() if len(action) == 1 else action.data.numpy()
         return action
     
     def evaluate_state(self, state):

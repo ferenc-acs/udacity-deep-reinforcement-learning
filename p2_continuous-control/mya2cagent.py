@@ -8,8 +8,8 @@ import mya2cnet as mynet
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000):
         assert numworkers > 1
-        assert env == 'unityagents.environment.UnityEnvironment'
-        assert brain == 'unityagents.brain.BrainParameters'
+        assert  'unityagents.environment.UnityEnvironment' in str( type(env) )
+        assert  'unityagents.brain.BrainParameters' in str( type(brain) )
         
         self.numworkers = numworkers
         self.env = env
@@ -77,35 +77,49 @@ class a2cagent():
     
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/v-14/95    
 # A multi process class is needed to synchronize the acivities of all 20 workers.    
+
+import torch.multiprocessing as mp
+
 class MultiProcEnv(object):
-    def __init__(self, make_env_fn, make_env_kargs, seed, numworkers):
-        self.make_env_fn = make_env_fn
-        self.make_env_kargs
-        self.seed
-        self.numworkers
+    #def __init__(self, make_env_fn, make_env_kargs, seed, numworkers):
+    def __init__(self, env, seed, numworkers):
+        
+        assert numworkers > 1
+        assert  'unityagents.environment.UnityEnvironment' in str( type(env) )        
+        
+        #self.make_env_fn = make_env_fn
+        #self.make_env_kargs
+        self.seed = seed
+        self.numworkers = numworkers
         
         self.pipes = [mp.Pipe() for rank in range(self.numworkers)]
         
-        self.workers = [mp.Process( target = self.work, 
-                                   args=(rank, self.pipes(rank)[1])) for rank in range(self.numworkers)]
+        myargs = [(rank, self.pipes[rank][1]) for rank in range(self.numworkers)]
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        self.workers = [mp.Process( target = self.work, args=myargs )]
         
         [w.start() for w in self.workers]
         
-    def work(self, rank, worker_end):
-        env.self.make_env_fn( **self.make_env_kargs, seed = self.seed + rank)
-        while True:
-            cmd, kwargs = worker_end.recv()
-            if cmd == 'reset':
-                worker_end.send( env.reset(**kwargs) )
-            if cmd == 'step':
-                worker_end.send( env_step(**kwargs) )
-            if cmd == '_past_limit':
-                worker_end.send( env._elapsed_steps >= env._max_episode_steps )
+    #def work(self, rank, worker_end):
+    def work(*args):    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        for a in args:  # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            print(a)    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+    
+        #env.self.make_env_fn( **self.make_env_kargs, seed = self.seed + rank)
+        #while True:
+        #    cmd, kwargs = worker_end.recv()
+        #    if cmd == 'reset':
+        #        worker_end.send( env.reset(**kwargs) )
+        #    if cmd == 'step':
+        #        worker_end.send( env_step(**kwargs) )
+        #    if cmd == '_past_limit':
+        #        worker_end.send( env._elapsed_steps >= env._max_episode_steps )
                 
-            env.close( **kwargs ) 
-            del env
-            worker_end.close()
-            break
+        #    env.close( **kwargs ) 
+        #    del env
+        #    worker_end.close()
+        #    break
+        pass # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
             
     def step(self, actions):
         assert len(actions) == self.n_workers
