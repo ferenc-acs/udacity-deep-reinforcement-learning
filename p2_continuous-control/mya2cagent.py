@@ -3,10 +3,12 @@
 
 import torch
 import numpy as np
+from itertools import count
 import mya2cnet as mynet
 
+
 class a2cagent():
-    def __init__(self, numworkers, env, brain, max_steps = 10000):
+    def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0, value_loss_weight = 0.6, entropy_loss_weight = 0.001):
         assert numworkers > 1
         assert  'unityagents.environment.UnityEnvironment' in str( type(env) )
         assert  'unityagents.brain.BrainParameters' in str( type(brain) )
@@ -15,6 +17,7 @@ class a2cagent():
         self.env = env
         self.brain = brain
         self.max_steps = max_steps
+        self.brain_inf = None
         
         self.logpas = list()
         self.entropies = list()
@@ -26,55 +29,84 @@ class a2cagent():
         self.running_timestep = 0
         self.running_exploration = 0.0
         
-    def train(self, states):
+        self.policy_loss_weight = policy_loss_weight
+        self.value_loss_weight = value_loss_weight
+        self.entropy_loss_weight = entropy_loss_weight        
+        
+    def train(self, states, gamma = 0.99, tau = 0.95):
+        self.gamma = gamma
+        self.tau = tau
+        
         self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, self.brain.vector_action_space_size)
         self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
+        
+        self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
 
         #states = self.env.reset()
         #states = self.env.vector_observations
         
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! 
 
-        #for step in count(start=1):
-        for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-            statesXX, is_terminals = self.interaction_step(states, self.env)
+        for step in count(start=1):
+        #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
+            states, is_terminals = self.interaction_step(states, self.env)
             
             #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
+            # BEGIN Not necessary: The Unity environment takes care of syncronizing 
             #if ( is_terminals.sum() > 0 ) or ( step - n_start >= self.max_steps ):
-            if ( np.sum(is_terminals) > 0 ): # or ( step - n_start >= self.max_steps ):
-                next_values = self.a2c_net.evaluate_state(state).detach().numpy() * ( 1 - ( is_terminals.sum() > 0 ) )
+            #if ( np.sum(is_terminals) > 0 ): # or ( step - n_start >= self.max_steps ):
+            # END Not necessary: The Unity environment takes care of syncronizing
+            #next_values = [self.a2c_net.evaluate_state(state).detach().numpy() for state in states] # * ( 1 - ( is_terminals.sum() > 0 ) )
 
-                self.rewards.append(next_values)
-                self.values.append( torch.Tensor(next_values) )
-                self.optimize_model()
+            #self.rewards.append(next_values)
+            #self.values.append( torch.Tensor(next_values) )
+            self.optimize_model()
 
-                #self.logpas = list()
-                #self.entropies = list()
-                self.rewards = list()
-                self.values = list()
+            #self.logpas = list()
+            #self.entropies = list()
+            #self.rewards = list()
+            #self.values = list()
 
-                n_start = step
+            n_start = step
+            if step >= self.max_steps:
+                break
         
     def optimize_model(self):
+        
+        #logpas = torch.stack(self.logpas).squeeze()
+        logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
+        #entropies = torch.stack(self.entropies).squeeze()
+        entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
+        #values = torch.stack(self.values).squeeze()  
+        values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
+        
         T = len(self.rewards)
         discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False)
-        returns = np.array( [[np.sum(discounts[:T-t] * rewards[t:, w]) for t in range(T)] for w in range(self.n_workers) ] )
-
-        np.values = values.data.numpy()
+        #returns = np.array( [[np.sum( discounts[:T-t] * self.rewards[t:, w] ) for t in range(T)] for w in range(self.numworkers) ] )
+        returns = np.array( [np.sum( discounts[:T-t] * self.rewards[t:] ) for t in range(T)] )
+        rewards = np.array(self.rewards).squeeze()
+        np_values = values.data.numpy()
         tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
-        advs = rewards[:-1] + self.gamma * mp_values[1:] - np_values[:-1]
+        advs = rewards[:-1] + self.gamma * np_values[1:] - np_values[:-1]
 
-        gaes = np.array(
-            [[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.n_workers)])
+        #gaes = np.array([[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.numworkers)])
+        gaes = np.array([np.sum(tau_discounts[:T-1-t] * advs[t]) for t in range(T-1)])
 
         discount_gaes = discounts[:-1] * gaes
 
         #np_values = values.data.numpy()
-        value_error = returns - values
-        value_loss = value_error.pow(2).mul(0.5).mean()
-        policy_loss = -(discount_gaes.detach() * logpas).mean()
-        entropy_loss = -entropies.mean()
+        value_error = returns - values.detach().numpy() #Because Pytorch 0.4.0 %-O
+        value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
+        if len(discount_gaes) != 0:
+            policy_loss = -1 * np.mean( discount_gaes * logpas)
+        else:
+            policy_loss = 0.0
+            
+        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug!     
+            
+        entropy_loss = -1 * np.mean(entropies.numpy())
 
         loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
 
@@ -88,30 +120,37 @@ class a2cagent():
     def interaction_step(self, states, env):
         actions = list()
         is_exploratories = list()
+        values = list()
+        logpasses = list()
+        entropies = list()
         
         for state in states:
-            action, is_exploratory, logpas, entropies, values = self.a2c_net.fullpass(state)
+            action, is_exploratory, logpas, entropy, value = self.a2c_net.fullpass(state)
             actions.append(action)
             is_exploratories.append(is_exploratory)
+            values.append(value)
+            logpasses.append(logpas)
+            entropies.append(entropy)
 
-            #Thx2: https://stackoverflow.com/a/6383390/12171415
-            #try:
-            self.logpas.append(logpas)
-            #except AttributeError:
-            #    self.logpas = torch.stack( torch.Tensor(logpas) )
-                
-            #try:
-            self.entropies.append(entropies)
-            #except AttributeError:
-            #    self.entropies = torch.stack( torch.Tensor(entropies) )
+        #Thx2: https://stackoverflow.com/a/6383390/12171415
+        #try:
+        self.logpas.append(logpasses)
+        #except AttributeError:
+        #    self.logpas = torch.stack( torch.Tensor(logpas) )
+
+        #try:
+        self.entropies.append(entropies)
+        #except AttributeError:
+        #    self.entropies = torch.stack( torch.Tensor(entropies) )
         
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #new_states = env.step( [x.cpu().detach().numpy() for x in actions] ) = env.step( [x.cpu().detach().numpy() for x in actions] )
-        brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
-        new_states = brain_inf.vector_observations
-        rewards = brain_inf.rewards
-        is_terminals = brain_inf.local_done
-
+        self.brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
+        new_states = self.brain_inf.vector_observations
+        is_terminals = self.brain_inf.local_done
+        rewards = np.array(self.brain_inf.rewards).squeeze()
+        
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         self.rewards.append(rewards)
         self.values.append(values)
