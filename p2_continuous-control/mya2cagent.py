@@ -22,7 +22,7 @@ class a2cagent():
         self.logpas = list()
         self.entropies = list()
         
-        self.rewards = list()
+        self.rewards = list(list())
         self.values = list()
         
         self.running_reward = 0.0
@@ -73,7 +73,9 @@ class a2cagent():
             if step >= self.max_steps:
                 break
         
-    def optimize_model(self):
+    def optimize_model(self):  
+        
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug!  
         
         #logpas = torch.stack(self.logpas).squeeze()
         logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
@@ -84,8 +86,10 @@ class a2cagent():
         
         T = len(self.rewards)
         discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False)
-        #returns = np.array( [[np.sum( discounts[:T-t] * self.rewards[t:, w] ) for t in range(T)] for w in range(self.numworkers) ] )
-        returns = np.array( [np.sum( discounts[:T-t] * self.rewards[t:] ) for t in range(T)] )
+        #returns = np.array( [[np.sum( discounts[:T-t] * self.rewards[t:, w] ) for t in range(T)] for w in range(self.numworkers) ] )   
+        
+        returns = np.array( [[np.sum( np.array(discounts)[:T-t] * np.array(self.rewards)[t:,w] ) \
+                              for t in range(T)] for w in range(self.numworkers)] ).flatten()
         rewards = np.array(self.rewards).squeeze()
         np_values = values.data.numpy()
         tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
@@ -100,13 +104,12 @@ class a2cagent():
         value_error = returns - values.detach().numpy() #Because Pytorch 0.4.0 %-O
         value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
         if len(discount_gaes) != 0:
-            policy_loss = -1 * np.mean( discount_gaes * logpas)
+            policy_loss = -1 * torch.mean( discount_gaes * logpas)
         else:
             policy_loss = 0.0
             
-        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug!     
-            
-        entropy_loss = -1 * np.mean(entropies.numpy())
+        #entropy_loss = -1 * np.mean(entropies.numpy()) #Not good! We need a Tensor!
+        entropy_loss = -1 * entropies.mean()
 
         loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
 
@@ -117,43 +120,54 @@ class a2cagent():
 
         self.a2c_opt.step()
         
-    def interaction_step(self, states, env):
-        actions = list()
-        is_exploratories = list()
-        values = list()
-        logpasses = list()
-        entropies = list()
+    def interaction_step(self, states, env):  
         
-        for state in states:
-            action, is_exploratory, logpas, entropy, value = self.a2c_net.fullpass(state)
-            actions.append(action)
-            is_exploratories.append(is_exploratory)
-            values.append(value)
-            logpasses.append(logpas)
-            entropies.append(entropy)
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        
+        actionsL = list()
+        is_exploratoriesL = list()
+        valuesL = list()
+        logpassesL = list()
+        entropiesL = list()
+        
+        #FA; BMSoT: OBSOLETE
+        #for state in states:
+        actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
+        actionsL.append(actions)
+        is_exploratoriesL.append(is_exploratories)
+        valuesL.append(values)
+        logpassesL.append(logpasses)
+        entropiesL.append(entropies)
 
-        #Thx2: https://stackoverflow.com/a/6383390/12171415
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        
+        #FA; BMSoT: OBSOLETE
+        # Make a Tensor out of the list of value tensors
+        # Thx2: https://discuss.pytorch.org/t/how-to-turn-a-list-of-tensor-to-tensor/8868
+        #values = torch.cat(values_l)
+        
+        
+        # Thx2: https://stackoverflow.com/a/6383390/12171415
         #try:
-        self.logpas.append(logpasses)
+        self.logpas.append(logpassesL)
         #except AttributeError:
         #    self.logpas = torch.stack( torch.Tensor(logpas) )
 
         #try:
-        self.entropies.append(entropies)
+        self.entropies.append(entropiesL)
         #except AttributeError:
         #    self.entropies = torch.stack( torch.Tensor(entropies) )
         
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #new_states = env.step( [x.cpu().detach().numpy() for x in actions] ) = env.step( [x.cpu().detach().numpy() for x in actions] )
         self.brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
         new_states = self.brain_inf.vector_observations
         is_terminals = self.brain_inf.local_done
-        rewards = np.array(self.brain_inf.rewards).squeeze()
+        rewards = np.array(self.brain_inf.rewards).reshape(-1, 1)
         
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         self.rewards.append(rewards)
-        self.values.append(values)
+        self.values.append(valuesL)
         
         self.running_reward += np.mean(rewards)
         self.running_timestep += 1
