@@ -44,11 +44,12 @@ class a2cagent():
 
         #states = self.env.reset()
         #states = self.env.vector_observations
-        
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! 
 
+        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        
         for step in count(start=1):
-        #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!       
             print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
             states, is_terminals = self.interaction_step(states, self.env)
             
@@ -62,7 +63,10 @@ class a2cagent():
 
             #self.rewards.append(next_values)
             #self.values.append( torch.Tensor(next_values) )
-            self.optimize_model()
+            if step > 1: #Gather some data first, otherwise GAE estimation gets funny!
+                #if step == 3: # Debug! Debug! Debug! Debug! Debug! Debug! 
+                #    import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! 
+                self.optimize_model()
 
             #self.logpas = list()
             #self.entropies = list()
@@ -73,47 +77,47 @@ class a2cagent():
             if step >= self.max_steps:
                 break
         
-    def optimize_model(self):  
-        
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug!  
-        
-        #logpas = torch.stack(self.logpas).squeeze()
-        logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
+    def optimize_model(self): 
+        logpas = torch.stack(self.logpas).squeeze()
+        #logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
         #entropies = torch.stack(self.entropies).squeeze()
-        entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
-        #values = torch.stack(self.values).squeeze()  
-        values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
+        #entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
+        values = torch.stack(self.values).squeeze()  
+        #values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
         
         T = len(self.rewards)
-        discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False)
+        discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False) #Calculate Monte Carlo like discounts
         #returns = np.array( [[np.sum( discounts[:T-t] * self.rewards[t:, w] ) for t in range(T)] for w in range(self.numworkers) ] )   
         
         returns = np.array( [[np.sum( np.array(discounts)[:T-t] * np.array(self.rewards)[t:,w] ) \
-                              for t in range(T)] for w in range(self.numworkers)] ).flatten()
+                              for t in range(T)] for w in range(self.numworkers)] ).flatten() #Discounted returns
         rewards = np.array(self.rewards).squeeze()
         np_values = values.data.numpy()
         tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
         advs = rewards[:-1] + self.gamma * np_values[1:] - np_values[:-1]
 
-        #gaes = np.array([[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.numworkers)])
-        gaes = np.array([np.sum(tau_discounts[:T-1-t] * advs[t]) for t in range(T-1)])
+        gaes = np.array([[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.numworkers)])
+        #gaes = np.array([np.sum(tau_discounts[:T-1-t] * advs[t]) for t in range(T-1)])
 
-        discount_gaes = discounts[:-1] * gaes
-
+        #discount_gaes = discounts[:-1] * gaes
+        #discount_gaes = torch.FloatTensor(discount_gaes.T).view(-1).unsqueeze(1)
+        #discount_gaes = (lambda x: x.unsqueeze(1) if len (x) > 0 else x)(torch.FloatTensor(discounts[:-1].T).view(-1))
+        discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1)
+        
         #np_values = values.data.numpy()
-        value_error = returns - values.detach().numpy() #Because Pytorch 0.4.0 %-O
+        value_error = returns - values.detach().numpy().flatten() #Because Pytorch 0.4.0 %-O
         value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
-        if len(discount_gaes) != 0:
-            policy_loss = -1 * torch.mean( discount_gaes * logpas)
-        else:
-            policy_loss = 0.0
+        
+        policy_loss = -1 * torch.mean( discount_gaes.detach() * logpas)
             
         #entropy_loss = -1 * np.mean(entropies.numpy()) #Not good! We need a Tensor!
-        entropy_loss = -1 * entropies.mean()
+        #entropy_loss = -1 * entropies.mean()
 
-        loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
+        #loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
+        loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss 
 
         self.a2c_opt.zero_grad()
+        
         loss.backward()
 
         torch.nn.utils.clip_grad_norm_( self.a2c_net.parameters(), self.a2c_net.max_grad_norm )
@@ -124,20 +128,21 @@ class a2cagent():
         
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
-        actionsL = list()
-        is_exploratoriesL = list()
-        valuesL = list()
-        logpassesL = list()
-        entropiesL = list()
+        #actionsL = list()
+        #is_exploratoriesL = list()
+        #valuesL = list()
+        #logpassesL = list()
+        #entropiesL = list()
         
         #FA; BMSoT: OBSOLETE
         #for state in states:
-        actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
-        actionsL.append(actions)
-        is_exploratoriesL.append(is_exploratories)
-        valuesL.append(values)
-        logpassesL.append(logpasses)
-        entropiesL.append(entropies)
+        #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
+        actions, values, logpasses = self.a2c_net.fullpass(states)
+        #actionsL.append(actions)
+        #is_exploratoriesL.append(is_exploratories)
+        #valuesL.append(values)
+        #logpassesL.append(logpasses)
+        #entropiesL.append(entropies)
 
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
@@ -149,12 +154,12 @@ class a2cagent():
         
         # Thx2: https://stackoverflow.com/a/6383390/12171415
         #try:
-        self.logpas.append(logpassesL)
+        self.logpas.append(logpasses)
         #except AttributeError:
         #    self.logpas = torch.stack( torch.Tensor(logpas) )
 
         #try:
-        self.entropies.append(entropiesL)
+        #self.entropies.append(entropiesL)
         #except AttributeError:
         #    self.entropies = torch.stack( torch.Tensor(entropies) )
         
@@ -167,12 +172,12 @@ class a2cagent():
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         self.rewards.append(rewards)
-        self.values.append(valuesL)
+        self.values.append(values)
         
         self.running_reward += np.mean(rewards)
         self.running_timestep += 1
         #self.running_exploration += is_exploratory[:,np.newaxis].astype(np.int)
-        self.running_exploration = False # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #self.running_exploration = False # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
         return new_states, is_terminals
             
@@ -181,7 +186,9 @@ class a2cagent():
                     
                     
         
-    
+# FA: Actually the code block below is not necessary, because the Unity Environment already contains 20 robot arms... \
+# FA: ...and takes care of synchronizing them. Keeping in the source, nevertheless, until the big cleanup!
+
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/v-14/95    
 # A multi process class is needed to synchronize the acivities of all 20 workers.    
 
