@@ -45,10 +45,12 @@ class a2cagent():
         #states = self.env.reset()
         #states = self.env.vector_observations
 
-        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         for step in count(start=1):
+            
             import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            
         #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!       
             print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
             states, is_terminals = self.interaction_step(states, self.env)
@@ -63,7 +65,7 @@ class a2cagent():
 
             #self.rewards.append(next_values)
             #self.values.append( torch.Tensor(next_values) )
-            if step > 1: #Gather some data first, otherwise GAE estimation gets funny!
+            if step > 10: #Gather some data first, otherwise GAE estimation gets funny!
                 #if step == 3: # Debug! Debug! Debug! Debug! Debug! Debug! 
                 #    import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! 
                 self.optimize_model()
@@ -137,7 +139,7 @@ class a2cagent():
         #FA; BMSoT: OBSOLETE
         #for state in states:
         #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
-        actions, values, logpasses = self.a2c_net.fullpass(states)
+        actions, values = self.a2c_net.fullpass(states)
         #actionsL.append(actions)
         #is_exploratoriesL.append(is_exploratories)
         #valuesL.append(values)
@@ -154,7 +156,7 @@ class a2cagent():
         
         # Thx2: https://stackoverflow.com/a/6383390/12171415
         #try:
-        self.logpas.append(logpasses)
+        #self.logpas.append(logpasses)
         #except AttributeError:
         #    self.logpas = torch.stack( torch.Tensor(logpas) )
 
