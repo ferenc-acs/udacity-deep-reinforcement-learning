@@ -13,6 +13,8 @@ HIDDEN_DIMS_DEFAULT = {
 
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
 # Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
+# Thx2: https://discuss.pytorch.org/t/understanding-log-prob-for-normal-distribution-in-pytorch/73809
+
 class A2CNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, max_grad_norm = 1, hidden_dims = HIDDEN_DIMS_DEFAULT):
         
@@ -87,15 +89,15 @@ class A2CNetwork(nn.Module):
     
     def fullpass(self, states):
         
-        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
-        _, value = self.forward(states)
+        logits, value = self.forward(states)
         #dist = torch.distributions.Categorial( logits = logits )
         #dist = torch.distributions.categorical.Categorical( logits = logits ) #PyTorch 0.4.0
-        #dist = torch.distributions.normal.Normal( logits, torch.std(logits) )
+        dist = torch.distributions.normal.Normal( torch.mean(logits), torch.std(logits) )
         #action = dist.sample()
         action = self.select_action(states)
-        #logprob = dist.log_prob(action).unsqueeze(-1)
+        logprob = dist.log_prob(action).unsqueeze(-1)
         #logprob = 0.1 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #entropy = dist.entropy().unsqueeze(-1)
         #entropy = 0.1 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
@@ -103,7 +105,7 @@ class A2CNetwork(nn.Module):
         #action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
         #is_exploratory = action != np.argmax( logits.detach().numpy(), axis = int( len(state) != -1) )
         #is_exploratory = False # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        return action, value #, logprob, entropy, is_exploratory
+        return action, value, logprob #, , entropy, is_exploratory
     
     def select_action(self, states):
         logits, _ = self.forward(states)

@@ -6,6 +6,8 @@ import numpy as np
 from itertools import count
 import mya2cnet as mynet
 
+import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0, value_loss_weight = 0.6, entropy_loss_weight = 0.001):
@@ -49,7 +51,8 @@ class a2cagent():
         
         for step in count(start=1):
             
-            import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            if step > 10: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+                pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
             
         #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!       
             print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
@@ -110,7 +113,7 @@ class a2cagent():
         value_error = returns - values.detach().numpy().flatten() #Because Pytorch 0.4.0 %-O
         value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
         
-        policy_loss = -1 * torch.mean( discount_gaes.detach() * logpas)
+        policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1])
             
         #entropy_loss = -1 * np.mean(entropies.numpy()) #Not good! We need a Tensor!
         #entropy_loss = -1 * entropies.mean()
@@ -139,7 +142,7 @@ class a2cagent():
         #FA; BMSoT: OBSOLETE
         #for state in states:
         #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
-        actions, values = self.a2c_net.fullpass(states)
+        actions, values, logpasses = self.a2c_net.fullpass(states)
         #actionsL.append(actions)
         #is_exploratoriesL.append(is_exploratories)
         #valuesL.append(values)
@@ -156,7 +159,7 @@ class a2cagent():
         
         # Thx2: https://stackoverflow.com/a/6383390/12171415
         #try:
-        #self.logpas.append(logpasses)
+        self.logpas.append(logpasses)
         #except AttributeError:
         #    self.logpas = torch.stack( torch.Tensor(logpas) )
 
