@@ -51,8 +51,8 @@ class a2cagent():
         
         for step in count(start=1):
             
-            if step > 10: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-                pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            #if step > 10: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            #    pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
             
         #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!       
             print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
@@ -123,7 +123,7 @@ class a2cagent():
 
         self.a2c_opt.zero_grad()
         
-        loss.backward()
+        loss.backward(retain_graph=True)
 
         torch.nn.utils.clip_grad_norm_( self.a2c_net.parameters(), self.a2c_net.max_grad_norm )
 
