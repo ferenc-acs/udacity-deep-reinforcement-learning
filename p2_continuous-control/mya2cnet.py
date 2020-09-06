@@ -4,12 +4,15 @@ import torch.nn.functional as F
 
 import numpy as np
 
+
 # Format: IN_Num [Layer 1] (OUT_Num = IN_Num) [Layer 2] OUT_Num = ...
 HIDDEN_DIMS_DEFAULT = {
     'shared' : (512, 512, 256, 256), #Three hidden layers
     'actor' : (256, 128, 128, 64), #Three hidden layers
     'critic' : (256, 128, 128, 64) #Three hidden layers
 }
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
 # Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
@@ -66,9 +69,11 @@ class A2CNetwork(nn.Module):
         check_tensor = lambda x: isinstance(x, torch.Tensor)
         x_act = True 
         x_crit = True
-
+        
+        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         x = self._format(states)
+        x = x.to(device)
         x = F.relu( self.input_layer(x) )
         for label in ['shared', 'actor', 'critic']:
             for self.hlayer in self.hlayers[label]:

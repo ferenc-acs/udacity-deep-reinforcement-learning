@@ -8,6 +8,7 @@ import mya2cnet as mynet
 
 import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0, value_loss_weight = 0.6, entropy_loss_weight = 0.001):
@@ -39,7 +40,8 @@ class a2cagent():
         self.gamma = gamma
         self.tau = tau
         
-        self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, self.brain.vector_action_space_size)
+        self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
+                                        self.brain.vector_action_space_size).to(device)
         self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
         
         self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
@@ -83,11 +85,11 @@ class a2cagent():
                 break
         
     def optimize_model(self): 
-        logpas = torch.stack(self.logpas).squeeze()
+        logpas = torch.stack(self.logpas).squeeze().to(device)
         #logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
         #entropies = torch.stack(self.entropies).squeeze()
         #entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
-        values = torch.stack(self.values).squeeze()  
+        values = torch.stack(self.values).squeeze().to(device)
         #values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
         
         T = len(self.rewards)
@@ -107,7 +109,7 @@ class a2cagent():
         #discount_gaes = discounts[:-1] * gaes
         #discount_gaes = torch.FloatTensor(discount_gaes.T).view(-1).unsqueeze(1)
         #discount_gaes = (lambda x: x.unsqueeze(1) if len (x) > 0 else x)(torch.FloatTensor(discounts[:-1].T).view(-1))
-        discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1)
+        discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1).to(device)
         
         #np_values = values.data.numpy()
         value_error = returns - values.detach().numpy().flatten() #Because Pytorch 0.4.0 %-O
