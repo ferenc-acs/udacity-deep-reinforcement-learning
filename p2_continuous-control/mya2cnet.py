@@ -12,7 +12,7 @@ HIDDEN_DIMS_DEFAULT = {
     'critic' : (256, 128, 128, 64) #Three hidden layers
 }
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
 # Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
@@ -60,7 +60,7 @@ class A2CNetwork(nn.Module):
     def _format(self, state):
         x = state
         if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=torch.float32)
+            x = torch.tensor(x, dtype=torch.float32, device=DEVICE)
             if len(x.size()) == 1:
                 x = x.unsqueeze(0)
         return x
@@ -73,16 +73,16 @@ class A2CNetwork(nn.Module):
         import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         x = self._format(states)
-        x = x.to(device)
+        #x = x.to(device)
         x = F.relu( self.input_layer(x) )
         for label in ['shared', 'actor', 'critic']:
-            for self.hlayer in self.hlayers[label]:
+            for hlayer in self.hlayers[label]:
                 if label == 'shared':
-                    x = F.relu( self.hlayer(x) )
+                    x = F.relu( hlayer(x) )
                 if label == 'actor':
-                    x_act = F.relu( self.hlayer(x_act) )
+                    x_act = F.relu( hlayer(x_act) )
                 if label == 'critic':
-                        x_crit = F.relu( self.hlayer(x_crit) )
+                        x_crit = F.relu( hlayer(x_crit) )
                         
             if ( type(x_act) == bool ):
                 x_act = x.clone()  # Create an Inplace copy...
