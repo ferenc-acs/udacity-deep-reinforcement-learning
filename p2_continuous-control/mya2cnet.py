@@ -17,6 +17,8 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
 # Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
 # Thx2: https://discuss.pytorch.org/t/understanding-log-prob-for-normal-distribution-in-pytorch/73809
+# Thx2: https://stackoverflow.com/questions/58926054/how-to-get-the-device-type-of-a-pytorch-module-conveniently
+
 
 class A2CNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, max_grad_norm = 1, hidden_dims = HIDDEN_DIMS_DEFAULT):
@@ -25,36 +27,38 @@ class A2CNetwork(nn.Module):
         
         super(A2CNetwork, self).__init__()
         
+        self.to(DEVICE)
+        
         self.max_grad_norm = max_grad_norm
         
         self.hlayers = dict()
         
-        self.hlayers['shared'] = nn.ModuleList()
-        self.hlayers['actor'] = nn.ModuleList()
-        self.hlayers['critic'] = nn.ModuleList()
+        self.hlayers['shared'] = nn.ModuleList().to(DEVICE)
+        self.hlayers['actor'] = nn.ModuleList().to(DEVICE)
+        self.hlayers['critic'] = nn.ModuleList().to(DEVICE)
         
         # Input layer
-        self.input_layer = nn.Linear( input_dim, hidden_dims['shared'][0] )
+        self.input_layer = nn.Linear( input_dim, hidden_dims['shared'][0] ).to(DEVICE)
         
         # Hidden layers shared
         for i in range( len(hidden_dims['shared'] ) -1 ):
-            self.hlayers['shared'].append( nn.Linear( hidden_dims['shared'][i], hidden_dims['shared'][i+1] ) )
+            self.hlayers['shared'].append( nn.Linear( hidden_dims['shared'][i], hidden_dims['shared'][i+1] ).to(DEVICE) )
         
         # Actor layers
         for i in range( len(hidden_dims['actor']) ):
             if i == 0:
-                self.hlayers['actor'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['actor'][i] ) )
+                self.hlayers['actor'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['actor'][i] ).to(DEVICE) )
             else:
-                self.hlayers['actor'].append( nn.Linear( hidden_dims['actor'][i-1], hidden_dims['actor'][i] ) )
+                self.hlayers['actor'].append( nn.Linear( hidden_dims['actor'][i-1], hidden_dims['actor'][i] ).to(DEVICE) )
         self.actor_out_layer = nn.Linear( hidden_dims['actor'][-1], output_dim )
                 
         #Critic layers
         for i in range( len(hidden_dims['critic']) ):
             if i == 0:
-                self.hlayers['critic'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['critic'][i] ) )
+                self.hlayers['critic'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['critic'][i] ).to(DEVICE) )
             else:
-                self.hlayers['critic'].append( nn.Linear( hidden_dims['critic'][i-1], hidden_dims['critic'][i] ) )
-        self.critic_out_layer = nn.Linear( hidden_dims['critic'][-1], 1 ) 
+                self.hlayers['critic'].append( nn.Linear( hidden_dims['critic'][i-1], hidden_dims['critic'][i] ).to(DEVICE) )
+        self.critic_out_layer = nn.Linear( hidden_dims['critic'][-1], 1 ).to(DEVICE) 
         
     # Prevents non Pytorch Tensor Object entering the processing stream
     def _format(self, state):
@@ -70,7 +74,7 @@ class A2CNetwork(nn.Module):
         x_act = True 
         x_crit = True
         
-        import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         x = self._format(states)
         #x = x.to(device)

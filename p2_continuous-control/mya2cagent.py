@@ -8,7 +8,7 @@ import mya2cnet as mynet
 
 import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0, value_loss_weight = 0.6, entropy_loss_weight = 0.001):
@@ -41,7 +41,9 @@ class a2cagent():
         self.tau = tau
         
         self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
-                                        self.brain.vector_action_space_size).to(device)
+                                        self.brain.vector_action_space_size)
+        self.a2c_net = self.a2c_net.float()
+        self.a2c_net = self.a2c_net.to(DEVICE)
         self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
         
         self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
@@ -85,11 +87,11 @@ class a2cagent():
                 break
         
     def optimize_model(self): 
-        logpas = torch.stack(self.logpas).squeeze().to(device)
+        logpas = torch.stack(self.logpas).squeeze().to(DEVICE)
         #logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
         #entropies = torch.stack(self.entropies).squeeze()
         #entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
-        values = torch.stack(self.values).squeeze().to(device)
+        values = torch.stack(self.values).squeeze().to(DEVICE)
         #values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
         
         T = len(self.rewards)
@@ -99,7 +101,7 @@ class a2cagent():
         returns = np.array( [[np.sum( np.array(discounts)[:T-t] * np.array(self.rewards)[t:,w] ) \
                               for t in range(T)] for w in range(self.numworkers)] ).flatten() #Discounted returns
         rewards = np.array(self.rewards).squeeze()
-        np_values = values.data.numpy()
+        np_values = values.data.cpu().numpy()
         tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
         advs = rewards[:-1] + self.gamma * np_values[1:] - np_values[:-1]
 
@@ -109,10 +111,10 @@ class a2cagent():
         #discount_gaes = discounts[:-1] * gaes
         #discount_gaes = torch.FloatTensor(discount_gaes.T).view(-1).unsqueeze(1)
         #discount_gaes = (lambda x: x.unsqueeze(1) if len (x) > 0 else x)(torch.FloatTensor(discounts[:-1].T).view(-1))
-        discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1).to(device)
+        discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1).to(DEVICE)
         
         #np_values = values.data.numpy()
-        value_error = returns - values.detach().numpy().flatten() #Because Pytorch 0.4.0 %-O
+        value_error = returns - values.detach().cpu().numpy().flatten() #Because Pytorch 0.4.0 %-O
         value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
         
         policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1])
