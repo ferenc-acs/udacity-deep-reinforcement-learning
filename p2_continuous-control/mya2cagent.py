@@ -87,9 +87,10 @@ class a2cagent():
                 break
         
     def optimize_model(self): 
+        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         logpas = torch.stack(self.logpas).squeeze().to(DEVICE)
         #logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
-        #entropies = torch.stack(self.entropies).squeeze()
+        entropies = torch.stack(self.entropies).squeeze().to(DEVICE)
         #entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
         values = torch.stack(self.values).squeeze().to(DEVICE)
         #values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
@@ -119,11 +120,11 @@ class a2cagent():
         
         policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1])
             
-        #entropy_loss = -1 * np.mean(entropies.numpy()) #Not good! We need a Tensor!
-        #entropy_loss = -1 * entropies.mean()
+        entropy_loss = -1 * np.mean( entropies.detach().cpu().numpy() ) 
+        entropy_loss = -1 * entropies.mean()
 
         #loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
-        loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss 
+        loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
 
         self.a2c_opt.zero_grad()
         
@@ -146,7 +147,7 @@ class a2cagent():
         #FA; BMSoT: OBSOLETE
         #for state in states:
         #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
-        actions, values, logpasses = self.a2c_net.fullpass(states)
+        actions, values, logpasses, entropies = self.a2c_net.fullpass(states)
         #actionsL.append(actions)
         #is_exploratoriesL.append(is_exploratories)
         #valuesL.append(values)
@@ -168,7 +169,7 @@ class a2cagent():
         #    self.logpas = torch.stack( torch.Tensor(logpas) )
 
         #try:
-        #self.entropies.append(entropiesL)
+        self.entropies.append(entropies)
         #except AttributeError:
         #    self.entropies = torch.stack( torch.Tensor(entropies) )
         
