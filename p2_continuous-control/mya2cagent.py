@@ -24,10 +24,10 @@ class a2cagent():
         self.max_n_steps = max_n_steps
         self.brain_inf = None
         
+        #self.rewards = list(list())
         self.logpas = list()
         self.entropies = list()
-        
-        self.rewards = list(list())
+        self.rewards = list()
         self.values = list()
         
         self.running_reward = 0.0
@@ -51,6 +51,8 @@ class a2cagent():
         self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
 
         states = self.brain_inf.vector_observations
+        
+        n_steps_start = 0
 
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
@@ -58,10 +60,27 @@ class a2cagent():
             
             #if step > 10: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
             #    pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-            
-        #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!       
-            print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
             states, is_terminals = self.interaction_step(states)
+            
+            if ( step - n_steps_start == self.max_n_steps ):
+                # Insert MORE CODE HERE!
+                next_values = self.a2c_net.evaluate_state(states).detach().cpu().numpy()
+                self.rewards.append(next_values)
+                self.values.append(torch.Tensor(next_values).to(DEVICE))
+                
+                self.optimize_model()
+                
+                self.logpas = []
+                self.entropies = []
+                self.rewards = []
+                self.values = []
+                n_steps_start = step
+                
+            if np.any(is_terminals):
+                self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
+            
+            print(f'\rTraining iteration: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
+            
             
             
             #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
@@ -74,22 +93,13 @@ class a2cagent():
 
             #self.rewards.append(next_values)
             #self.values.append( torch.Tensor(next_values) )
-            if step > 10: #Gather some data first, otherwise GAE estimation gets funny!
-                #if step == 3: # Debug! Debug! Debug! Debug! Debug! Debug! 
-                #    import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! 
-                self.optimize_model()
 
-            #self.logpas = list()
-            #self.entropies = list()
-            #self.rewards = list()
-            #self.values = list()
-
-            n_start = step
+ 
             if step >= self.max_steps:
                 break
         
     def optimize_model(self): 
-        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        
         logpas = torch.stack(self.logpas).squeeze().to(DEVICE)
         #logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
         entropies = torch.stack(self.entropies).squeeze().to(DEVICE)
@@ -116,11 +126,14 @@ class a2cagent():
         #discount_gaes = (lambda x: x.unsqueeze(1) if len (x) > 0 else x)(torch.FloatTensor(discounts[:-1].T).view(-1))
         discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1).to(DEVICE)
         
+        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        
         #np_values = values.data.numpy()
         value_error = returns - values.detach().cpu().numpy().flatten() #Because Pytorch 0.4.0 %-O
         value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
         
-        policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1])
+        #policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1])
+        policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2))
             
         entropy_loss = -1 * np.mean( entropies.detach().cpu().numpy() ) 
         entropy_loss = -1 * entropies.mean()
@@ -198,77 +211,3 @@ class a2cagent():
                     
                     
                     
-        
-# FA: Actually the code block below is not necessary, because the Unity Environment already contains 20 robot arms... \
-# FA: ...and takes care of synchronizing them. Keeping in the source, nevertheless, until the big cleanup!
-
-# Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/v-14/95    
-# A multi process class is needed to synchronize the acivities of all 20 workers.    
-
-import torch.multiprocessing as mp
-
-class MultiProcEnv(object):
-    #def __init__(self, make_env_fn, make_env_kargs, seed, numworkers):
-    def __init__(self, env, seed, numworkers):
-        
-        assert numworkers > 1
-        assert  'unityagents.environment.UnityEnvironment' in str( type(env) )        
-        
-        #self.make_env_fn = make_env_fn
-        #self.make_env_kargs
-        self.seed = seed
-        self.numworkers = numworkers
-        
-        self.pipes = [mp.Pipe() for rank in range(self.numworkers)]
-        
-        myargs = [(rank, self.pipes[rank][1]) for rank in range(self.numworkers)]
-        self.workers = [mp.Process( target = self.work, args=myargs )]
-        
-        [w.start() for w in self.workers]
-        
-    #def work(self, rank, worker_end):
-    def work(*args):    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        #for a in args:  # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        #    print(a)    # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-    
-        #env.self.make_env_fn( **self.make_env_kargs, seed = self.seed + rank)
-        #while True:
-        #    cmd, kwargs = worker_end.recv()
-        #    if cmd == 'reset':
-        #        worker_end.send( env.reset(**kwargs) )
-        #    if cmd == 'step':
-        #        worker_end.send( env_step(**kwargs) )
-        #    if cmd == '_past_limit':
-        #        worker_end.send( env._elapsed_steps >= env._max_episode_steps )
-                
-        #    env.close( **kwargs ) 
-        #    del env
-        #    worker_end.close()
-        #    break
-        pass # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-            
-    def step(self, actions):
-        assert len(actions) == self.n_workers
-        
-        [self.send_msg( ('step', {'action':actions[rank]}), rank ) \
-         for rank in range(self.n_workers)]
-        
-        results = []
-        
-        for rank in range(self.n_workers):
-            parent, end, _ = self.pipes(rank)
-            o, r, d, _ = parent_end.recv()
-            if d:
-                self.send_msg( ('reset', {}), rank )
-                o = paren_end.recv()
-                
-            results.append( (o, np.array(r, dtype=np.float), np.array(d, dtype=np.float), _) )
-            
-        return [np.vstack(block) for block in np.array(results).T]
-    
-    
-        
-                                                                      
-                                           
-        
-        
