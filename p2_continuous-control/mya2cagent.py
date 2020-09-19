@@ -11,7 +11,8 @@ import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class a2cagent():
-    def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0, value_loss_weight = 0.6, entropy_loss_weight = 0.001):
+    def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
+                 value_loss_weight = 0.6, entropy_loss_weight = 0.001, max_n_steps = 10):
         assert numworkers > 1
         assert  'unityagents.environment.UnityEnvironment' in str( type(env) )
         assert  'unityagents.brain.BrainParameters' in str( type(brain) )
@@ -20,6 +21,7 @@ class a2cagent():
         self.env = env
         self.brain = brain
         self.max_steps = max_steps
+        self.max_n_steps = max_n_steps
         self.brain_inf = None
         
         self.logpas = list()
@@ -36,7 +38,7 @@ class a2cagent():
         self.value_loss_weight = value_loss_weight
         self.entropy_loss_weight = entropy_loss_weight        
         
-    def train(self, states, gamma = 0.99, tau = 0.95):
+    def train(self, gamma = 0.99, tau = 0.95):
         self.gamma = gamma
         self.tau = tau
         
@@ -48,8 +50,7 @@ class a2cagent():
         
         self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
 
-        #states = self.env.reset()
-        #states = self.env.vector_observations
+        states = self.brain_inf.vector_observations
 
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
@@ -60,7 +61,8 @@ class a2cagent():
             
         #for step in range(1): # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!       
             print(f'\rTraining epoch: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
-            states, is_terminals = self.interaction_step(states, self.env)
+            states, is_terminals = self.interaction_step(states)
+            
             
             #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
@@ -134,8 +136,8 @@ class a2cagent():
 
         self.a2c_opt.step()
         
-    def interaction_step(self, states, env):  
-        
+    def interaction_step(self, states):  
+        # thx2: https://github.com/udacity/deep-reinforcement-learning/blob/master/python/unityagents/brain.py
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         #actionsL = list()
@@ -174,7 +176,8 @@ class a2cagent():
         #    self.entropies = torch.stack( torch.Tensor(entropies) )
         
         #new_states = env.step( [x.cpu().detach().numpy() for x in actions] ) = env.step( [x.cpu().detach().numpy() for x in actions] )
-        self.brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
+        #self.brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
+        self.brain_inf = self.env.step( actions.cpu().detach().numpy() )[self.brain.brain_name]
         new_states = self.brain_inf.vector_observations
         is_terminals = self.brain_inf.local_done
         rewards = np.array(self.brain_inf.rewards).reshape(-1, 1)

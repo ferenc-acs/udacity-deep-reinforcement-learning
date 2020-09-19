@@ -105,15 +105,12 @@ class A2CNetwork(nn.Module):
         #dist = torch.distributions.categorical.Categorical( logits = logits ) #PyTorch 0.4.0
         dist = torch.distributions.normal.Normal( torch.mean(logits), torch.std(logits) )
         #action = dist.sample()
-        action = self.select_action(states)
-        logprob = dist.log_prob(action).unsqueeze(-1)
-        #logprob = 0.1 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        entropy = dist.entropy().unsqueeze(-1)
-        #entropy = 0.1 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #action = self.select_action(states)
         #action = action.item() if len(action) == 1 else action.data.numpy()
-        #action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        logprob = dist.log_prob(action).unsqueeze(-1)
+        entropy = dist.entropy().unsqueeze(-1)
         #is_exploratory = action != np.argmax( logits.detach().numpy(), axis = int( len(state) != -1) )
-        #is_exploratory = False # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         return action, value, logprob, entropy #, , , is_exploratory
     
     def select_action(self, states):
