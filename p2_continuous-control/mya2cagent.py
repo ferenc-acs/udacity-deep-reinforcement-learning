@@ -9,6 +9,7 @@ import mya2cnet as mynet
 import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
@@ -30,6 +31,8 @@ class a2cagent():
         self.rewards = list()
         self.values = list()
         
+        #self.actions = np.zeros( (max_steps, numworkers, self.brain.vector_action_space_size) ) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        
         self.running_reward = 0.0
         self.running_timestep = 0
         self.running_exploration = 0.0
@@ -48,7 +51,8 @@ class a2cagent():
         self.a2c_net = self.a2c_net.to(DEVICE)
         self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
         
-        self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
+        self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name] # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        # self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
 
         states = self.brain_inf.vector_observations
         
@@ -77,7 +81,7 @@ class a2cagent():
                 n_steps_start = step
                 
             if np.any(is_terminals):
-                self.brain_inf = self.env.reset(train_mode=True)[self.brain.brain_name]
+                self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
             
             print(f'\rTraining iteration: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
             
@@ -97,6 +101,7 @@ class a2cagent():
  
             if step >= self.max_steps:
                 break
+        #return(self.actions) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
     def optimize_model(self): 
         
@@ -143,7 +148,8 @@ class a2cagent():
 
         self.a2c_opt.zero_grad()
         
-        loss.backward(retain_graph=True)
+        #loss.backward(retain_graph=True)
+        loss.backward()
 
         torch.nn.utils.clip_grad_norm_( self.a2c_net.parameters(), self.a2c_net.max_grad_norm )
 
@@ -163,6 +169,7 @@ class a2cagent():
         #for state in states:
         #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
         actions, values, logpasses, entropies = self.a2c_net.fullpass(states)
+        #self.actions =
         #actionsL.append(actions)
         #is_exploratoriesL.append(is_exploratories)
         #valuesL.append(values)
@@ -189,13 +196,13 @@ class a2cagent():
         #    self.entropies = torch.stack( torch.Tensor(entropies) )
         
         #new_states = env.step( [x.cpu().detach().numpy() for x in actions] ) = env.step( [x.cpu().detach().numpy() for x in actions] )
-        #self.brain_inf = env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
+        #self.brain_inf = self.env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
         self.brain_inf = self.env.step( actions.cpu().detach().numpy() )[self.brain.brain_name]
         new_states = self.brain_inf.vector_observations
         is_terminals = self.brain_inf.local_done
         rewards = np.array(self.brain_inf.rewards).reshape(-1, 1)
         
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         self.rewards.append(rewards)
         self.values.append(values)
