@@ -67,6 +67,7 @@ class a2cagent():
             states, is_terminals = self.interaction_step(states)
             
             if ( step - n_steps_start == self.max_n_steps ):
+                print(f' --> Optimize model at iteration: {step}')
                 # Insert MORE CODE HERE!
                 next_values = self.a2c_net.evaluate_state(states).detach().cpu().numpy()
                 self.rewards.append(next_values)
@@ -81,6 +82,7 @@ class a2cagent():
                 n_steps_start = step
                 
             if np.any(is_terminals):
+                print(f' --> Environment reset at iteration: {step}')
                 self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
             
             print(f'\rTraining iteration: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
