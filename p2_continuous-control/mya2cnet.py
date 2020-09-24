@@ -131,7 +131,7 @@ class A2CNetwork(nn.Module):
         action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
         #action = (action * 2) - 1 #FA: Give the normalized values a range between -1 and 1
         #action = action.item() if len(action) == 1 else action.data.numpy()
-        return action
+        return action.cpu().detach().numpy()
         #return action * 4 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
     
     def evaluate_state(self, states):

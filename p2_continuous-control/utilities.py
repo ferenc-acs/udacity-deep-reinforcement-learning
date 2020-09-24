@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov  6 17:48:35 2018
-
+Modified on Mon Sep 21 22:18 2020
 @author: Ferenc
 """
 
@@ -13,3 +13,11 @@ def get_time_string(sep = False):
         return time.strftime('%Y-%m-%d / %H-%M-%S')
     else:
         return time.strftime('%Y%m%d%H%M%S')
+    
+def print_elapsed_time(start, end, message = ''):
+    tot_time = end - start
+    print("\n***--> Total Elapsed Runtime:", time.strftime("%H:%M:%S", time.gmtime(tot_time)), end = ' ')
+    if not (message == ''):
+        print(message)
+    else:
+        print('')

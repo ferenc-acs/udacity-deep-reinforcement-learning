@@ -199,7 +199,11 @@ class a2cagent():
         
         #new_states = env.step( [x.cpu().detach().numpy() for x in actions] ) = env.step( [x.cpu().detach().numpy() for x in actions] )
         #self.brain_inf = self.env.step( [x.cpu().detach().numpy() for x in actions] )[self.brain.brain_name]
+        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #actions = np.random.randn(self.numworkers, self.brain.vector_action_space_size) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #self.brain_inf = self.env.step( actions )[self.brain.brain_name] # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         self.brain_inf = self.env.step( actions.cpu().detach().numpy() )[self.brain.brain_name]
+        #self.brain_inf = self.env.step( actions.cpu().detach().numpy() )['ReacherBrain'] # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         new_states = self.brain_inf.vector_observations
         is_terminals = self.brain_inf.local_done
         rewards = np.array(self.brain_inf.rewards).reshape(-1, 1)
