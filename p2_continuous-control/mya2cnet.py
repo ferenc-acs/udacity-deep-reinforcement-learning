@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 import numpy as np
 
-import pdb
+import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 # Format: IN_Num [Layer 1] (OUT_Num = IN_Num) [Layer 2] OUT_Num = ...
 HIDDEN_DIMS_DEFAULT = {
@@ -36,39 +36,39 @@ class A2CNetwork(nn.Module):
         
         self.hlayers = dict()
         
-        self.hlayers['shared'] = nn.ModuleList().to(DEVICE)
-        self.hlayers['actor'] = nn.ModuleList().to(DEVICE)
-        self.hlayers['critic'] = nn.ModuleList().to(DEVICE)
+        self.hlayers['shared'] = nn.ModuleList().double().to(DEVICE)
+        self.hlayers['actor'] = nn.ModuleList().double().to(DEVICE)
+        self.hlayers['critic'] = nn.ModuleList().double().to(DEVICE)
         
         # Input layer
-        self.input_layer = nn.Linear( input_dim, hidden_dims['shared'][0] ).to(DEVICE)
+        self.input_layer = nn.Linear( input_dim, hidden_dims['shared'][0] ).double().to(DEVICE)
         
         # Hidden layers shared
         for i in range( len(hidden_dims['shared'] ) -1 ):
-            self.hlayers['shared'].append( nn.Linear( hidden_dims['shared'][i], hidden_dims['shared'][i+1] ).to(DEVICE) )
+            self.hlayers['shared'].append( nn.Linear( hidden_dims['shared'][i], hidden_dims['shared'][i+1] ).double().to(DEVICE) )
         
         # Actor layers
         for i in range( len(hidden_dims['actor']) ):
             if i == 0:
-                self.hlayers['actor'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['actor'][i] ).to(DEVICE) )
+                self.hlayers['actor'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['actor'][i] ).double().to(DEVICE) )
             else:
-                self.hlayers['actor'].append( nn.Linear( hidden_dims['actor'][i-1], hidden_dims['actor'][i] ).to(DEVICE) )
-        self.actor_out_layer = nn.Linear( hidden_dims['actor'][-1], output_dim ).to(DEVICE)
+                self.hlayers['actor'].append( nn.Linear( hidden_dims['actor'][i-1], hidden_dims['actor'][i] ).double().to(DEVICE) )
+        self.actor_out_layer = nn.Linear( hidden_dims['actor'][-1], output_dim ).double().to(DEVICE)
                 
         #Critic layers
         for i in range( len(hidden_dims['critic']) ):
             if i == 0:
-                self.hlayers['critic'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['critic'][i] ).to(DEVICE) )
+                self.hlayers['critic'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['critic'][i] ).double().to(DEVICE) )
             else:
-                self.hlayers['critic'].append( nn.Linear( hidden_dims['critic'][i-1], hidden_dims['critic'][i] ).to(DEVICE) )
-        self.critic_out_layer = nn.Linear( hidden_dims['critic'][-1], 1 ).to(DEVICE) 
+                self.hlayers['critic'].append( nn.Linear( hidden_dims['critic'][i-1], hidden_dims['critic'][i] ).double().to(DEVICE) )
+        self.critic_out_layer = nn.Linear( hidden_dims['critic'][-1], 1 ).double().to(DEVICE) 
         
     # Prevents non Pytorch Tensor Object entering the processing stream
     def _format(self, state):
         x = state
         if not isinstance(x, torch.Tensor):
-            x = torch.tensor(x, dtype=torch.float, device=DEVICE)
-            #x = torch.tensor(x, dtype=torch.double, device=DEVICE)
+            #x = torch.tensor(x, dtype=torch.float, device=DEVICE)
+            x = torch.tensor(x, dtype=torch.double, device=DEVICE)
             if len(x.size()) == 1:
                 x = x.unsqueeze(0)
         return x
@@ -78,12 +78,16 @@ class A2CNetwork(nn.Module):
         x_act = True 
         x_crit = True
         
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         x = self._format(states)
+        
+        # Normalize Input
+        x = F.normalize(x)
         #x = torch.tensor(states, dtype=torch.float32).to(DEVICE) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
-        x = F.relu( self.input_layer(x) )
+        x = F.tanh( self.input_layer(x) )
+        
         for label in ['shared', 'actor', 'critic']:
             for hlayer in self.hlayers[label]:
                 if label == 'shared':
@@ -98,8 +102,10 @@ class A2CNetwork(nn.Module):
             if ( type(x_crit) == bool ):
                 x_crit = x.clone() # ...after processing shared layers
 
-       
-        return self.actor_out_layer(x_act), self.critic_out_layer(x_crit) 
+        x_act = F.tanh( self.actor_out_layer(x_act) )
+        x_crit = F.tanh( self.critic_out_layer(x_crit) )
+    
+        return x_act, x_crit
     
     def fullpass(self, states):
         

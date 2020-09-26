@@ -7,6 +7,7 @@ from itertools import count
 import mya2cnet as mynet
 
 import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+import pprint as pp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
@@ -47,7 +48,8 @@ class a2cagent():
         
         self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
                                         self.brain.vector_action_space_size)
-        self.a2c_net = self.a2c_net.float()
+        #self.a2c_net = self.a2c_net.float()
+        self.a2c_net = self.a2c_net.double()
         self.a2c_net = self.a2c_net.to(DEVICE)
         self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
         
@@ -63,8 +65,8 @@ class a2cagent():
         
         for step in count(start=1):
             
-            #if step > 10: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-            #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            #if step == 33: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            #    pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
             states, is_terminals = self.interaction_step(states)
             
             if ( step - n_steps_start == self.max_n_steps ):
@@ -72,7 +74,7 @@ class a2cagent():
                 # Insert MORE CODE HERE!
                 next_values = self.a2c_net.evaluate_state(states).detach().cpu().numpy()
                 self.rewards.append(next_values)
-                self.values.append(torch.Tensor(next_values).to(DEVICE))
+                self.values.append(torch.Tensor(next_values).double().to(DEVICE))
                 
                 self.optimize_model()
                 
@@ -107,12 +109,13 @@ class a2cagent():
         #return(self.actions) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
     def optimize_model(self): 
+        #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
-        logpas = torch.stack(self.logpas).squeeze().to(DEVICE)
+        logpas = torch.stack(self.logpas).squeeze().double().to(DEVICE)
         #logpas = torch.stack( tuple( torch.from_numpy( np.array(self.logpas) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
-        entropies = torch.stack(self.entropies).squeeze().to(DEVICE)
+        entropies = torch.stack(self.entropies).squeeze().double().to(DEVICE)
         #entropies = torch.stack( tuple( torch.from_numpy( np.array(self.entropies) ) ) ).squeeze() #Because Pytorch 0.4.0 %-O
-        values = torch.stack(self.values).squeeze().to(DEVICE)
+        values = torch.stack(self.values).squeeze().double().to(DEVICE)
         #values = torch.stack( tuple( [x[0] for x in self.values[0]] ) ).squeeze() #Because Pytorch 0.4.0 %-O
         
         T = len(self.rewards)
@@ -132,7 +135,8 @@ class a2cagent():
         #discount_gaes = discounts[:-1] * gaes
         #discount_gaes = torch.FloatTensor(discount_gaes.T).view(-1).unsqueeze(1)
         #discount_gaes = (lambda x: x.unsqueeze(1) if len (x) > 0 else x)(torch.FloatTensor(discounts[:-1].T).view(-1))
-        discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1).to(DEVICE)
+        #discount_gaes = torch.FloatTensor(discounts[:-1].T).view(-1).unsqueeze(1).to(DEVICE)
+        discount_gaes = torch.DoubleTensor(discounts[:-1].T).view(-1).unsqueeze(1).double().to(DEVICE)
         
         #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
@@ -172,6 +176,7 @@ class a2cagent():
         #for state in states:
         #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
         actions, values, logpasses, entropies = self.a2c_net.fullpass(states)
+        print(' --> Actions:'); print( 'mean:', actions.detach().mean().cpu().numpy(), 'sdev:', actions.detach().std().cpu().numpy() ) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #self.actions =
         #actionsL.append(actions)
         #is_exploratoriesL.append(is_exploratories)
