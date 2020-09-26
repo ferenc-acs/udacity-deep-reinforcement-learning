@@ -6,12 +6,6 @@ import numpy as np
 
 import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
-# Format: IN_Num [Layer 1] (OUT_Num = IN_Num) [Layer 2] OUT_Num = ...
-HIDDEN_DIMS_DEFAULT = {
-    'shared' : (512, 512, 256, 256), #Three hidden layers
-    'actor' : (256, 128, 128, 64), #Three hidden layers
-    'critic' : (256, 128, 128, 64) #Three hidden layers
-}
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -23,7 +17,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class A2CNetwork(nn.Module):
-    def __init__(self, input_dim, output_dim, max_grad_norm = 1, hidden_dims = HIDDEN_DIMS_DEFAULT):
+    def __init__(self, input_dim, output_dim, max_grad_norm = 1):
         
         torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #torch.manual_seed(456454618181) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
@@ -34,34 +28,25 @@ class A2CNetwork(nn.Module):
         
         self.max_grad_norm = max_grad_norm
         
-        self.hlayers = dict()
-        
-        self.hlayers['shared'] = nn.ModuleList().double().to(DEVICE)
-        self.hlayers['actor'] = nn.ModuleList().double().to(DEVICE)
-        self.hlayers['critic'] = nn.ModuleList().double().to(DEVICE)
         
         # Input layer
-        self.input_layer = nn.Linear( input_dim, hidden_dims['shared'][0] ).double().to(DEVICE)
+        self.input_layer = nn.Linear( input_dim, 512 ).double().to(DEVICE)
         
         # Hidden layers shared
-        for i in range( len(hidden_dims['shared'] ) -1 ):
-            self.hlayers['shared'].append( nn.Linear( hidden_dims['shared'][i], hidden_dims['shared'][i+1] ).double().to(DEVICE) )
-        
+        self.hlayer1 = nn.Linear( 512, 256 ).double().to(DEVICE)
+        self.hlayer2 = nn.Linear( 256, 256 ).double().to(DEVICE)
+
         # Actor layers
-        for i in range( len(hidden_dims['actor']) ):
-            if i == 0:
-                self.hlayers['actor'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['actor'][i] ).double().to(DEVICE) )
-            else:
-                self.hlayers['actor'].append( nn.Linear( hidden_dims['actor'][i-1], hidden_dims['actor'][i] ).double().to(DEVICE) )
-        self.actor_out_layer = nn.Linear( hidden_dims['actor'][-1], output_dim ).double().to(DEVICE)
-                
+        self.actolayer1 = nn.Linear( 256, 128 ).double().to(DEVICE)
+        self.actolayer2 = nn.Linear( 128, 64 ).double().to(DEVICE)
+        self.actor_out_layer = nn.Linear( 64, output_dim ).double().to(DEVICE)
+        
+            
         #Critic layers
-        for i in range( len(hidden_dims['critic']) ):
-            if i == 0:
-                self.hlayers['critic'].append( nn.Linear( hidden_dims['shared'][-1], hidden_dims['critic'][i] ).double().to(DEVICE) )
-            else:
-                self.hlayers['critic'].append( nn.Linear( hidden_dims['critic'][i-1], hidden_dims['critic'][i] ).double().to(DEVICE) )
-        self.critic_out_layer = nn.Linear( hidden_dims['critic'][-1], 1 ).double().to(DEVICE) 
+        self.critlayer1 = nn.Linear( 256, 128 ).double().to(DEVICE)
+        self.critlayer2 = nn.Linear( 128, 64 ).double().to(DEVICE)
+        self.critic_out_layer = nn.Linear( 64, 1 ).double().to(DEVICE) 
+    
         
     # Prevents non Pytorch Tensor Object entering the processing stream
     def _format(self, state):
@@ -88,20 +73,18 @@ class A2CNetwork(nn.Module):
         
         x = F.tanh( self.input_layer(x) )
         
-        for label in ['shared', 'actor', 'critic']:
-            for hlayer in self.hlayers[label]:
-                if label == 'shared':
-                    x = F.relu( hlayer(x) )
-                if label == 'actor':
-                    x_act = F.relu( hlayer(x_act) )
-                if label == 'critic':
-                        x_crit = F.relu( hlayer(x_crit) )
-                        
-            if ( type(x_act) == bool ):
-                x_act = x.clone()  # Create an Inplace copy...
-            if ( type(x_crit) == bool ):
-                x_crit = x.clone() # ...after processing shared layers
-
+        x = F.relu( self.hlayer1(x) )
+        x = F.relu( self.hlayer2(x) )
+        
+        x_act = x.clone()  # Create an Inplace copy...
+        x_crit = x.clone() # ...after processing shared layers
+        
+        x_act = F.relu( self.actolayer1(x_act) )
+        x_act = F.relu( self.actolayer2(x_act) )
+        
+        x_crit = F.relu( self.critlayer1(x_crit) )
+        x_crit = F.relu( self.critlayer2(x_crit) )
+        
         x_act = F.tanh( self.actor_out_layer(x_act) )
         x_crit = F.tanh( self.critic_out_layer(x_crit) )
     
