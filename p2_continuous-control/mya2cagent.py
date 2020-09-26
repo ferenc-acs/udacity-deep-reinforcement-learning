@@ -56,6 +56,7 @@ class a2cagent():
 
         states = self.brain_inf.vector_observations
         
+        lastoptim = 0
         n_steps_start = 0
 
         #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
@@ -63,11 +64,11 @@ class a2cagent():
         for step in count(start=1):
             
             #if step > 10: # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-            #    pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+            #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
             states, is_terminals = self.interaction_step(states)
             
             if ( step - n_steps_start == self.max_n_steps ):
-                print(f' --> Optimize model at iteration: {step}')
+                lastoptim = step
                 # Insert MORE CODE HERE!
                 next_values = self.a2c_net.evaluate_state(states).detach().cpu().numpy()
                 self.rewards.append(next_values)
@@ -85,7 +86,7 @@ class a2cagent():
                 print(f' --> Environment reset at iteration: {step}')
                 self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
             
-            print(f'\rTraining iteration: {step} ', end = (lambda x: '#' if x%2 == 0 else '+')(step) )
+            print(f'\rTraining iteration: {step} ', f'last optimization: {lastoptim}'.rjust(30), end = (lambda x: '#' if x%2 == 0 else '+')(step) )
             
             
             
