@@ -10,12 +10,12 @@ import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 import pprint as pp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
+ENV_IS_TRAIN_MODE = False #Set to 'False' only for debug purposes!
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
                  value_loss_weight = 0.6, entropy_loss_weight = 0.001, max_n_steps = 10):
-        assert numworkers > 1
+        #assert numworkers > 1
         assert  'unityagents.environment.UnityEnvironment' in str( type(env) )
         assert  'unityagents.brain.BrainParameters' in str( type(brain) )
         
@@ -72,9 +72,9 @@ class a2cagent():
             if ( step - n_steps_start == self.max_n_steps ):
                 lastoptim = step
                 # Insert MORE CODE HERE!
-                next_values = self.a2c_net.evaluate_state(states).detach().cpu().numpy()
-                self.rewards.append(next_values)
-                self.values.append(torch.Tensor(next_values).double().to(DEVICE))
+                #next_values = self.a2c_net.evaluate_state(states).detach().cpu().numpy()
+                #self.rewards.append(next_values)
+                #self.values.append(torch.Tensor(next_values).double().to(DEVICE))
                 
                 self.optimize_model()
                 
@@ -122,14 +122,23 @@ class a2cagent():
         discounts = np.logspace(0, T, num=T, base=self.gamma, endpoint = False) #Calculate Monte Carlo like discounts
         #returns = np.array( [[np.sum( discounts[:T-t] * self.rewards[t:, w] ) for t in range(T)] for w in range(self.numworkers) ] )   
         
-        returns = np.array( [[np.sum( np.array(discounts)[:T-t] * np.array(self.rewards)[t:,w] ) \
-                              for t in range(T)] for w in range(self.numworkers)] ).flatten() #Discounted returns
+        if self.numworkers > 1:
+            returns = np.array( [[np.sum( np.array(discounts)[:T-t] * np.array(self.rewards)[t:,w] )\
+                                  for t in range(T)] for w in range(self.numworkers)] ).flatten() #Discounted returns
+        else:
+            returns = np.array( [np.sum( np.array(discounts)[:T-t] * np.array(self.rewards)[t:] ) for t in range(T)] ).flatten() #Discounted returns
+                                 
+                
         rewards = np.array(self.rewards).squeeze()
         np_values = values.data.cpu().numpy()
         tau_discounts = np.logspace(0, T-1, num=T-1, base=self.gamma*self.tau, endpoint = False)
         advs = rewards[:-1] + self.gamma * np_values[1:] - np_values[:-1]
-
-        gaes = np.array([[np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.numworkers)])
+        
+        if self.numworkers > 1:
+            gaes = np.array( [ [np.sum(tau_discounts[:T-1-t] * advs[t:, w]) for t in range(T-1)] for w in range(self.numworkers) ] )
+        else:
+            gaes = np.array( [np.sum(tau_discounts[:T-1-t] * advs[t:] ) for t in range(T-1) ] )
+            
         #gaes = np.array([np.sum(tau_discounts[:T-1-t] * advs[t]) for t in range(T-1)])
 
         #discount_gaes = discounts[:-1] * gaes
@@ -145,7 +154,10 @@ class a2cagent():
         value_loss = np.mean( np.multiply( np.power(value_error, 2), 0.5 ) )
         
         #policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1])
-        policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2))
+        if self.numworkers > 1:
+            policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas, 2)[-T:-1] )
+        else:
+            policy_loss = -1 * torch.mean( discount_gaes.detach() * torch.mean(logpas) )
             
         entropy_loss = -1 * np.mean( entropies.detach().cpu().numpy() ) 
         entropy_loss = -1 * entropies.mean()
