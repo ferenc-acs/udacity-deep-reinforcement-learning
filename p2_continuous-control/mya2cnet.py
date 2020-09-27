@@ -59,10 +59,6 @@ class A2CNetwork(nn.Module):
         return x
     
     def forward(self, states):
-        #check_tensor = lambda x: isinstance(x, torch.Tensor)
-        x_act = True 
-        x_crit = True
-        
         #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         x = self._format(states)
@@ -74,21 +70,28 @@ class A2CNetwork(nn.Module):
         x = F.tanh( self.input_layer(x) )
         
         x = F.relu( self.hlayer1(x) )
+        #x = F.tanh( self.hlayer1(x) )
+        
         x = F.relu( self.hlayer2(x) )
+        #x = F.tanh( self.hlayer2(x) )
         
         x_act = x.clone()  # Create an Inplace copy...
         x_crit = x.clone() # ...after processing shared layers
         
         x_act = F.relu( self.actolayer1(x_act) )
+        #x_act = F.tanh( self.actolayer1(x_act) )
+        
         x_act = F.relu( self.actolayer2(x_act) )
+        #x_act = F.tanh( self.actolayer2(x_act) )
         
         x_crit = F.relu( self.critlayer1(x_crit) )
-        x_crit = F.relu( self.critlayer2(x_crit) )
+        #x_crit = F.tanh( self.critlayer1(x_crit) )
         
-        x_act = F.tanh( self.actor_out_layer(x_act) )
-        x_crit = F.tanh( self.critic_out_layer(x_crit) )
+        x_crit = F.relu( self.critlayer2(x_crit) )
+        #x_crit = F.tanh( self.critlayer2(x_crit) )
+        
+        return self.actor_out_layer(x_act), self.critic_out_layer(x_crit)
     
-        return x_act, x_crit
     
     def fullpass(self, states):
         
