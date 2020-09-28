@@ -58,6 +58,11 @@ class A2CNetwork(nn.Module):
                 x = x.unsqueeze(0)
         return x
     
+    # Scales the absolute values of actions, like glasses for eyes
+    def _scale_action_np(self, action):
+        act_enh = F.hardtanh(torch.mul(action, 7))
+        return act_enh
+    
     def forward(self, states):
         #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
@@ -106,7 +111,8 @@ class A2CNetwork(nn.Module):
         #action = dist.sample()
         #action = self.select_action(states)
         #action = action.item() if len(action) == 1 else action.data.numpy()
-        action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        #action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        action = self._scale_action_np(logits)
         logprob = dist.log_prob(action).unsqueeze(-1)
         entropy = dist.entropy().unsqueeze(-1)
         
@@ -120,10 +126,10 @@ class A2CNetwork(nn.Module):
         
         #dist = torch.distributions.Categorical(logits = logits)
         #action = dist.sample()
-        action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
+        #action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
         #action = (action * 2) - 1 #FA: Give the normalized values a range between -1 and 1
         #action = action.item() if len(action) == 1 else action.data.numpy()
-        return action.cpu().detach().numpy()
+        return self._scale_action_np(logits).detach().cpu().numpy()
         #return action * 4 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
     
     def evaluate_state(self, states):

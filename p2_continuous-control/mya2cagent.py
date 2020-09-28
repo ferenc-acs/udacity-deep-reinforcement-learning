@@ -10,7 +10,7 @@ import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 import pprint as pp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-ENV_IS_TRAIN_MODE = False #Set to 'False' only for debug purposes!
+ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
@@ -188,7 +188,7 @@ class a2cagent():
         #for state in states:
         #actions, is_exploratories, logpasses, entropies, values = self.a2c_net.fullpass(states)
         actions, values, logpasses, entropies = self.a2c_net.fullpass(states)
-        print(' --> Actions:'); print( 'mean:', actions.detach().mean().cpu().numpy(), 'sdev:', actions.detach().std().cpu().numpy() ) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #print(' --> Actions:'); print( 'mean:', actions.detach().mean().cpu().numpy(), 'sdev:', actions.detach().std().cpu().numpy() ) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #self.actions =
         #actionsL.append(actions)
         #is_exploratoriesL.append(is_exploratories)
