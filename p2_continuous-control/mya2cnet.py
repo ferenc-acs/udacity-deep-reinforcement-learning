@@ -19,7 +19,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class A2CNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, max_grad_norm = 1):
         
-        torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        #torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #torch.manual_seed(456454618181) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         super(A2CNetwork, self).__init__()
@@ -69,9 +69,8 @@ class A2CNetwork(nn.Module):
         x = self._format(states)
         
         # Normalize Input
-        x = F.normalize(x)
-        #x = torch.tensor(states, dtype=torch.float32).to(DEVICE) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        
+        #x = F.normalize(x)
+                
         x = F.tanh( self.input_layer(x) )
         
         x = F.relu( self.hlayer1(x) )
