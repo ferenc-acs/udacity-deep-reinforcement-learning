@@ -60,7 +60,7 @@ class A2CNetwork(nn.Module):
     
     # Scales the absolute values of actions, like glasses for eyes
     def _scale_action_np(self, action):
-        act_enh = F.hardtanh(torch.mul(action, 7))
+        act_enh = F.hardtanh(torch.mul(action, 6))
         return act_enh
     
     def forward(self, states):
@@ -69,30 +69,34 @@ class A2CNetwork(nn.Module):
         x = self._format(states)
         
         # Normalize Input
-        #x = F.normalize(x)
+        x = F.normalize(x)
                 
-        x = F.tanh( self.input_layer(x) )
+        x = F.hardtanh( self.input_layer(x) )
         
         x = F.relu( self.hlayer1(x) )
-        #x = F.tanh( self.hlayer1(x) )
+        #x = F.hardtanh( self.hlayer1(x) )
         
         x = F.relu( self.hlayer2(x) )
-        #x = F.tanh( self.hlayer2(x) )
+        #x = F.hardtanh( self.hlayer2(x) )
         
         x_act = x.clone()  # Create an Inplace copy...
         x_crit = x.clone() # ...after processing shared layers
         
-        x_act = F.relu( self.actolayer1(x_act) )
-        #x_act = F.tanh( self.actolayer1(x_act) )
+        #x_act = F.relu( self.actolayer1(x_act) )
+        #x_act = F.hardtanh( self.actolayer1(x_act) )
+        x_act = F.tanh( self.actolayer1(x_act) )
         
-        x_act = F.relu( self.actolayer2(x_act) )
-        #x_act = F.tanh( self.actolayer2(x_act) )
+        #x_act = F.relu( self.actolayer2(x_act) )
+        #x_act = F.hardtanh( self.actolayer2(x_act) )
+        x_act = F.tanh( self.actolayer2(x_act) )
         
-        x_crit = F.relu( self.critlayer1(x_crit) )
-        #x_crit = F.tanh( self.critlayer1(x_crit) )
+        #x_crit = F.relu( self.critlayer1(x_crit) )
+        #x_crit = F.hardtanh( self.critlayer1(x_crit) )
+        x_crit = F.tanh( self.critlayer1(x_crit) )
         
-        x_crit = F.relu( self.critlayer2(x_crit) )
-        #x_crit = F.tanh( self.critlayer2(x_crit) )
+        #x_crit = F.relu( self.critlayer2(x_crit) )
+        #x_crit = F.hardtanh( self.critlayer2(x_crit) )
+        x_crit = F.tanh( self.critlayer2(x_crit) )
         
         return self.actor_out_layer(x_act), self.critic_out_layer(x_crit)
     

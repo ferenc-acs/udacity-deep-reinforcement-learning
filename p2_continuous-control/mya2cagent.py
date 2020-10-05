@@ -10,7 +10,7 @@ import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 import pprint as pp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
+ENV_IS_TRAIN_MODE = False #Set to 'False' only for debug purposes!
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
@@ -87,17 +87,18 @@ class a2cagent():
             if np.any(is_terminals):
                 print(f' --> Environment reset at iteration: {step}')
                 self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
+                states = self.brain_inf.vector_observations
+                self.logpas = []
+                self.entropies = []
+                self.rewards = []
+                self.values = []
+                n_steps_start = step
+                
             
             print(f'\rTraining iteration: {step} ', f'last optimization: {lastoptim}'.rjust(30), end = (lambda x: '#' if x%2 == 0 else '+')(step) )
             
             
             
-            #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-
-            # BEGIN Not necessary: The Unity environment takes care of syncronizing 
-            #if ( is_terminals.sum() > 0 ) or ( step - n_start >= self.max_steps ):
-            #if ( np.sum(is_terminals) > 0 ): # or ( step - n_start >= self.max_steps ):
-            # END Not necessary: The Unity environment takes care of syncronizing
             #next_values = [self.a2c_net.evaluate_state(state).detach().numpy() for state in states] # * ( 1 - ( is_terminals.sum() > 0 ) )
 
             #self.rewards.append(next_values)
@@ -162,7 +163,6 @@ class a2cagent():
         entropy_loss = -1 * np.mean( entropies.detach().cpu().numpy() ) 
         entropy_loss = -1 * entropies.mean()
 
-        #loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
         loss = self.policy_loss_weight * policy_loss + self.value_loss_weight * value_loss + self.entropy_loss_weight * entropy_loss
 
         self.a2c_opt.zero_grad()
