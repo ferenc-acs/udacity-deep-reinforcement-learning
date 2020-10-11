@@ -10,7 +10,7 @@ import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 import pprint as pp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-ENV_IS_TRAIN_MODE = False #Set to 'False' only for debug purposes!
+ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
