@@ -20,7 +20,6 @@ class A2CNetwork(nn.Module):
     def __init__(self, input_dim, output_dim, max_grad_norm = 1):
         
         #torch.manual_seed(20200808) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
-        #torch.manual_seed(456454618181) # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         super(A2CNetwork, self).__init__()
         
@@ -52,7 +51,6 @@ class A2CNetwork(nn.Module):
     def _format(self, state):
         x = state
         if not isinstance(x, torch.Tensor):
-            #x = torch.tensor(x, dtype=torch.float, device=DEVICE)
             x = torch.tensor(x, dtype=torch.double, device=DEVICE)
             if len(x.size()) == 1:
                 x = x.unsqueeze(0)
@@ -103,37 +101,23 @@ class A2CNetwork(nn.Module):
     
     def fullpass(self, states):
         
-        #import pdb; pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
         
         logits, value = self.forward(states)
         
-        #dist = torch.distributions.Categorial( logits = logits )
-        #dist = torch.distributions.categorical.Categorical( logits = logits ) #PyTorch 0.4.0
         dist = torch.distributions.normal.Normal( torch.mean(logits), torch.std(logits) )
-        #action = dist.sample()
-        #action = self.select_action(states)
-        #action = action.item() if len(action) == 1 else action.data.numpy()
-        #action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
         action = self._scale_action_np(logits)
         logprob = dist.log_prob(action).unsqueeze(-1)
         entropy = dist.entropy().unsqueeze(-1)
         
-        #is_exploratory = action != np.argmax( logits.detach().numpy(), axis = int( len(state) != -1) )
-        return action, value, logprob, entropy #, , , is_exploratory
-        #return action * 4, value, logprob, entropy # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+        return action, value, logprob, entropy
         
     
     def select_action(self, states):
         logits, _ = self.forward(states)
         
-        #dist = torch.distributions.Categorical(logits = logits)
-        #action = dist.sample()
-        #action = F.hardtanh(logits) #FA: Limit to values between -1 and 1 
-        #action = (action * 2) - 1 #FA: Give the normalized values a range between -1 and 1
-        #action = action.item() if len(action) == 1 else action.data.numpy()
         return self._scale_action_np(logits).detach().cpu().numpy()
-        #return action * 4 # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
+    
     
     def evaluate_state(self, states):
         _, value = self.forward(states)
