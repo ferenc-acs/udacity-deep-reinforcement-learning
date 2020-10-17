@@ -14,7 +14,7 @@ ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
 
 class a2cagent():
     def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
-                 value_loss_weight = 0.6, entropy_loss_weight = 0.001, max_n_steps = 10):
+                 value_loss_weight = 0.6, entropy_loss_weight = 0.001, max_n_steps = 10, hidden_dims = False):
 
         assert  'unityagents.environment.UnityEnvironment' in str( type(env) )
         assert  'unityagents.brain.BrainParameters' in str( type(brain) )
@@ -37,18 +37,27 @@ class a2cagent():
         
         self.policy_loss_weight = policy_loss_weight
         self.value_loss_weight = value_loss_weight
-        self.entropy_loss_weight = entropy_loss_weight        
+        self.entropy_loss_weight = entropy_loss_weight    
+        
+        self.hidden_dims = hidden_dims
         
     def train(self, gamma = 0.99, tau = 0.95):
         self.gamma = gamma
         self.tau = tau
         
-        self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
-                                        self.brain.vector_action_space_size)
+        if not self.hidden_dims == False:
+            self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
+                                            self.brain.vector_action_space_size)
+        else:
+            self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
+                                            self.brain.vector_action_space_size, hidden_dims = self.hidden_dims)
+            
 
         self.a2c_net = self.a2c_net.double()
         self.a2c_net = self.a2c_net.to(DEVICE)
-        self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
+        
+        #lr according to Mnih et al. (2016) "Asynchronous Methods for Deep Reinforcement Learning"
+        self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters(), lr=0.00005)
         
         self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
 
