@@ -108,3 +108,6 @@ Banana_Linux/
 
 # ghostwriter backup files
 *.md.backup
+
+# PyTorch save files
+*.pth

@@ -5,41 +5,50 @@ import torch
 import numpy as np
 from itertools import count
 import mya2cnet as mynet
+from os.path import join
+from utilities import get_time_string
 
 import pdb # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 import pprint as pp # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ENV_IS_TRAIN_MODE = True #Set to 'False' only for debug purposes!
+VERSION = '0.01a' #Version information for saving and loading agent files
 
 class a2cagent():
-    def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0,
+    def __init__(self, numworkers, env, brain, max_steps = 10000, policy_loss_weight = 1.0, load_agent=False,
                  value_loss_weight = 0.6, entropy_loss_weight = 0.001, max_n_steps = 10, hidden_dims = False):
-
+        
         assert  'unityagents.environment.UnityEnvironment' in str( type(env) )
         assert  'unityagents.brain.BrainParameters' in str( type(brain) )
-        
+
         self.numworkers = numworkers
         self.env = env
         self.brain = brain
-        self.max_steps = max_steps
-        self.max_n_steps = max_n_steps
-        self.brain_inf = None
+
         
-        self.logpas = list()
-        self.entropies = list()
-        self.rewards = list()
-        self.values = list()
-        
-        self.running_reward = 0.0
-        self.running_timestep = 0
-        self.running_exploration = 0.0
-        
-        self.policy_loss_weight = policy_loss_weight
-        self.value_loss_weight = value_loss_weight
-        self.entropy_loss_weight = entropy_loss_weight    
-        
-        self.hidden_dims = hidden_dims
+        #no filename was given so build everything from scratch
+        if load_agent == False: 
+            self.max_steps = max_steps
+            self.max_n_steps = max_n_steps
+            self.brain_inf = None
+
+            self.logpas = list()
+            self.entropies = list()
+            self.rewards = list()
+            self.values = list()
+
+            self.running_reward = 0.0
+            self.running_timestep = 0
+            self.running_exploration = 0.0
+
+            self.policy_loss_weight = policy_loss_weight
+            self.value_loss_weight = value_loss_weight
+            self.entropy_loss_weight = entropy_loss_weight    
+
+            self.hidden_dims = hidden_dims
+
+            
         
     def train(self, gamma = 0.99, tau = 0.95):
         self.gamma = gamma
@@ -57,7 +66,8 @@ class a2cagent():
         self.a2c_net = self.a2c_net.to(DEVICE)
         
         #lr according to Mnih et al. (2016) "Asynchronous Methods for Deep Reinforcement Learning"
-        self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters(), lr=0.00005)
+        #self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters(), lr=0.00005)
+        self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
         
         self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
 
@@ -167,8 +177,59 @@ class a2cagent():
         self.running_timestep += 1
 
         return new_states, is_terminals
+
+    def save_agent(self, path):
+        state = {
+        'version' : VERSION,
+        'logpas' : self.logpas,
+        'entropies' : self.entropies,
+        'rewards' : self.rewards,
+        'values' : self.values,
+        
+        'running_reward' : self.running_reward,
+        'running_timestep' : self.running_timestep,
+        'running_exploration' : self.running_exploration,
+        
+        'policy_loss_weight' : self.policy_loss_weight,
+        'value_loss_weight' : self.value_loss_weight,
+        'entropy_loss_weight' : self.entropy_loss_weight,
+        
+        'hidden_dims' : self.hidden_dims,
+        'gamma' : self.gamma,
+        'tau' : self.tau,
+        
+        'a2c_net' : self.a2c_net.state_dict(),
+        'a2c_opt' : self.a2c_opt.state_dict(),
+        'brain_inf' : self.brain_inf
+        }
+        
+        filename = f'drlnd-reacher-{VERSION}-{get_time_string()}.pth'
+        torch.save( state, join(path, filename) )
+        return filename
+    
+    
+    def load_agent(self, path, filename):
+        # thx2: https://github.com/pytorch/pytorch/issues/10622#issuecomment-474733769
+        if torch.cuda.is_available():
+            map_location=lambda storage, loc: storage.cuda()
+        else:
+            map_location='cpu'
+
+        checkpoint = torch.load(join(path, filename), map_location=map_location)
+        
+        if checkpoint['version'] == VERSION:
+            self.a2c_net = mynet.A2CNetwork(self.brain.vector_observation_space_size, \
+                                            self.brain.vector_action_space_size)
+            self.a2c_net.load_state_dict(checkpoint['a2c_net'])
             
-            
+            self.a2c_opt = torch.optim.Adam(self.a2c_net.parameters())
+            self.a2c_opt.load_state_dict(checkpoint['a2c_opt'])
+            self.a2c_net.eval()
+        else:
+            print(f'Error loading file {filename}: Wrong version!')
+            print(f"{filename} was generated with version {checkpoint['version']} but {VERSION} required!")
+                   
+    
                     
                     
                     
