@@ -1,30 +1,30 @@
 import signal
-
+ 
 from contextlib import contextmanager
-
+ 
 import requests
-
-
+ 
+ 
 DELAY = INTERVAL = 4 * 60  # interval time in seconds
 MIN_DELAY = MIN_INTERVAL = 2 * 60
 KEEPALIVE_URL = "https://nebula.udacity.com/api/v1/remote/keep-alive"
 TOKEN_URL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/keep_alive_token"
 TOKEN_HEADERS = {"Metadata-Flavor":"Google"}
-
-
+ 
+ 
 def _request_handler(headers):
     def _handler(signum, frame):
         requests.request("POST", KEEPALIVE_URL, headers=headers)
     return _handler
-
-
+ 
+ 
 @contextmanager
 def active_session(delay=DELAY, interval=INTERVAL):
     """
     Example:
-
-    from workspace_utils import active session
-
+ 
+    from workspace_utils import active_session
+ 
     with active_session():
         # do long-running work here
     """
@@ -40,15 +40,16 @@ def active_session(delay=DELAY, interval=INTERVAL):
     finally:
         signal.signal(signal.SIGALRM, original_handler)
         signal.setitimer(signal.ITIMER_REAL, 0)
-
-
+ 
+ 
 def keep_awake(iterable, delay=DELAY, interval=INTERVAL):
     """
     Example:
-
+ 
     from workspace_utils import keep_awake
-
+ 
     for i in keep_awake(range(5)):
         # do iteration with lots of work here
     """
     with active_session(delay, interval): yield from iterable
+        

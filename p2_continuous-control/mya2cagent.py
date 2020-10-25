@@ -1,5 +1,6 @@
-#Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
-#Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
+# Thx2: https://livebook.manning.com/book/grokking-deep-reinforcement-learning/chapter-11/
+# Thx2: https://github.com/mimoralea/gdrl/blob/master/notebooks/chapter_11/chapter-11.ipynb
+# thx2: https://github.com/udacity/workspaces-student-support/tree/master/jupyter
 
 import torch
 import numpy as np
@@ -76,21 +77,21 @@ class a2cagent():
         lastoptim = 0
         n_steps_start = 0
         
+
         for step in count(start=1):
-            
             states, is_terminals = self.interaction_step(states)
-            
+
             if ( step - n_steps_start == self.max_n_steps ):
                 lastoptim = step
-                
+
                 self.optimize_model()
-                
+
                 self.logpas = []
                 self.entropies = []
                 self.rewards = []
                 self.values = []
                 n_steps_start = step
-                
+
             if np.any(is_terminals):
                 print(f' --> Environment reset at iteration: {step}')
                 self.brain_inf = self.env.reset(train_mode=ENV_IS_TRAIN_MODE)[self.brain.brain_name]
@@ -99,14 +100,14 @@ class a2cagent():
                 self.rewards = []
                 self.values = []
                 n_steps_start = step
-                
-            
-            print(f'\rTraining iteration: {step} ', f'last optimization: {lastoptim}'.rjust(30), end = (lambda x: '#' if x%2 == 0 else '+')(step) )
-            
- 
+
+
+            print(f'\rTraining iteration: {step} ', f'last optimization: {lastoptim}'.rjust(30)\
+                  , end = (lambda x: '#' if x%2 == 0 else '+')(step) )
+
+
             if step >= self.max_steps:
                 break
-
         
     def optimize_model(self): 
         #pdb.set_trace() # Debug! Debug! Debug! Debug! Debug! Debug! Debug! Debug!
